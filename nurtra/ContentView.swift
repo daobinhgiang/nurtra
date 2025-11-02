@@ -161,24 +161,6 @@ struct MainAppView: View {
                         }
                         .padding(.horizontal)
                     }
-                    
-                    Button(action: {
-                        do {
-                            try authManager.signOut()
-                        } catch {
-                            print("Sign out error: \(error)")
-                        }
-                    }) {
-                        Text("Sign Out")
-                            .font(.body)
-                            .fontWeight(.medium)
-                            .foregroundColor(.red)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color(.systemGray6))
-                            .cornerRadius(10)
-                    }
-                    .padding(.horizontal)
                 }
                 .padding(.bottom, 20)
             }
@@ -234,6 +216,7 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showingDeleteConfirmation = false
     @State private var isDeleting = false
+    @State private var showingBlockApps = false
     
     var body: some View {
         NavigationView {
@@ -253,6 +236,45 @@ struct SettingsView: View {
                         Spacer()
                     }
                     .padding(.vertical, 8)
+                }
+                
+                Section {
+                    Button(action: {
+                        showingBlockApps = true
+                    }) {
+                        HStack {
+                            Image(systemName: "app.badge.shield.checkmark.fill")
+                                .foregroundColor(.blue)
+                            Text("Manage Blocked Apps")
+                            Spacer()
+                        }
+                    }
+                } header: {
+                    Text("App Blocking")
+                } footer: {
+                    Text("Select and manage which apps will be blocked when the feature is activated.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Section {
+                    Button(action: {
+                        do {
+                            try authManager.signOut()
+                        } catch {
+                            print("Sign out error: \(error)")
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: "arrow.right.square.fill")
+                                .foregroundColor(.red)
+                            Text("Sign Out")
+                                .foregroundColor(.red)
+                            Spacer()
+                        }
+                    }
+                } header: {
+                    Text("Account")
                 }
                 
                 Section {
@@ -294,6 +316,18 @@ struct SettingsView: View {
                 }
             } message: {
                 Text("Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently deleted.")
+            }
+            .sheet(isPresented: $showingBlockApps) {
+                NavigationStack {
+                    BlockAppsView()
+                        .toolbar {
+                            ToolbarItem(placement: .navigationBarTrailing) {
+                                Button("Done") {
+                                    showingBlockApps = false
+                                }
+                            }
+                        }
+                }
             }
         }
     }
