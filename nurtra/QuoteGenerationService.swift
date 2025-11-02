@@ -22,16 +22,25 @@ class QuoteGenerationService {
         do {
             print("🎯 Starting quote generation in background...")
             
-            // Step 1: Generate quotes using OpenAI
+            // Step 1: Fetch user's name for personalization
+            print("👤 Fetching user name for personalization...")
+            let userName = try? await firestoreManager.fetchUserName()
+            if let name = userName, !name.isEmpty {
+                print("✅ Found user name: \(name)")
+            } else {
+                print("ℹ️ No user name found, will use generic addressing")
+            }
+            
+            // Step 2: Generate quotes using OpenAI
             print("📝 Calling OpenAI API...")
-            let quotes = try await openAIService.generateMotivationalQuotes(from: responses)
+            let quotes = try await openAIService.generateMotivationalQuotes(from: responses, userName: userName)
             
             print("✨ Generated \(quotes.count) quotes:")
             for (index, quote) in quotes.enumerated() {
                 print("  \(index + 1). \(quote)")
             }
             
-            // Step 2: Save quotes to Firestore
+            // Step 3: Save quotes to Firestore
             print("💾 Saving quotes to Firestore...")
             try await firestoreManager.saveMotivationalQuotes(quotes: quotes)
             

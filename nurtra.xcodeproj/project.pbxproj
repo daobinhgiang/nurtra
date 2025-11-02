@@ -337,10 +337,11 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 3DK6P74YHP;
 				ENABLE_PREVIEWS = YES;
+				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = nurtra/Info.plist;
 				INFOPLIST_KEY_CFBundleURLTypes = "{\n    CFBundleTypeRole = Editor;\n    CFBundleURLSchemes =     (\n        \"com.googleusercontent.apps.420916737489-jsnpodu2muqmvipgp0a62d5dub1ivu7a\"\n    );\n}";
-				INFOPLIST_KEY_NSCameraUsageDescription = "nurtra woud like camera usage to better support you with your recovery!";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Nurtra uses the camera to display a live camera preview as a visual background, helping you stay present and focused on your recovery journey.";
 				INFOPLIST_KEY_NSFamilyControlsUsageDescription = "nurtra needs access to Screen Time to help you block distracting apps during your recovery.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -375,10 +376,11 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 3DK6P74YHP;
 				ENABLE_PREVIEWS = YES;
+				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = nurtra/Info.plist;
 				INFOPLIST_KEY_CFBundleURLTypes = "{\n    CFBundleTypeRole = Editor;\n    CFBundleURLSchemes =     (\n        \"com.googleusercontent.apps.420916737489-jsnpodu2muqmvipgp0a62d5dub1ivu7a\"\n    );\n}";
-				INFOPLIST_KEY_NSCameraUsageDescription = "nurtra woud like camera usage to better support you with your recovery!";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Nurtra uses the camera to display a live camera preview as a visual background during your recovery sessions. For example, when you open the craving view to track your binge-free time, the camera provides a real-time view that helps you stay present and focused on your recovery journey.";
 				INFOPLIST_KEY_NSFamilyControlsUsageDescription = "nurtra needs access to Screen Time to help you block distracting apps during your recovery.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

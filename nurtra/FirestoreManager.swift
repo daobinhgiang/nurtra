@@ -32,6 +32,7 @@ class FirestoreManager: ObservableObject {
                 "lifeWithoutBinge": responses.lifeWithoutBinge,
                 "bingeThoughts": responses.bingeThoughts,
                 "bingeTriggers": responses.bingeTriggers,
+                "copingActivities": responses.copingActivities,
                 "whatMattersMost": responses.whatMattersMost,
                 "recoveryValues": responses.recoveryValues
             ]
@@ -267,6 +268,23 @@ class FirestoreManager: ObservableObject {
         }
     }
     
+    // MARK: - User Profile Methods
+    
+    func fetchUserName() async throws -> String? {
+        guard let userId = Auth.auth().currentUser?.uid else {
+            throw FirestoreError.noAuthenticatedUser
+        }
+        
+        let document = try await db.collection("users").document(userId).getDocument()
+        
+        if document.exists {
+            let data = document.data()
+            return data?["name"] as? String
+        } else {
+            return nil
+        }
+    }
+    
     // MARK: - Cloud Functions Methods
     
     func sendMotivationalNotification() async throws -> String {
@@ -309,6 +327,7 @@ struct OnboardingSurveyResponses {
     let lifeWithoutBinge: [String]
     let bingeThoughts: [String]
     let bingeTriggers: [String]
+    let copingActivities: [String]
     let whatMattersMost: [String]
     let recoveryValues: [String]
 }

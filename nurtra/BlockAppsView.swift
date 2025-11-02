@@ -181,7 +181,7 @@ struct BlockAppsView: View {
                         Text("Recommendation")
                             .font(.headline)
                             .foregroundColor(.primary)
-                        Text("For best results, we recommend selecting \"All Apps & Categories\" to improve your symptoms and support your recovery journey.")
+                        Text("For best results, we recommend selecting \"All Apps & Categories\" to help you better manage your cravings.")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -203,6 +203,7 @@ struct BlockAppsView: View {
                             .font(.subheadline)
                             .fontWeight(.semibold)
                             .foregroundColor(isLocked ? .red : .green)
+                            .hidden() // Hide lock status display
                     }
                     Text(selectionDescription + " selected")
                         .font(.subheadline)
@@ -210,7 +211,7 @@ struct BlockAppsView: View {
                 }
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(isLocked ? Color.red.opacity(0.1) : Color.green.opacity(0.1))
+                .background(Color(.systemGray6)) // Hide lock status visual indicator by using neutral color
                 .cornerRadius(10)
             }
             
@@ -219,7 +220,7 @@ struct BlockAppsView: View {
             }) {
                 HStack {
                     Image(systemName: "plus.circle.fill")
-                    Text(hasSelection ? "Manage Blocked Items" : "Select Items to Block")
+                    Text(hasSelection ? "Manage Blocked Apps" : "Select Apps to Block")
                 }
                 .font(.headline)
                 .foregroundColor(.white)
@@ -250,6 +251,7 @@ struct BlockAppsView: View {
                     .cornerRadius(10)
                 }
                 .padding(.horizontal)
+                .hidden() // Hide Lock Items button
             }
             
             Spacer()

@@ -32,6 +32,7 @@ function getOpenAIClient() {
  * 4. Sends a push notification to the user's device
  * 
  * Personalization includes:
+ * - User's name for direct personal addressing
  * - Onboarding survey responses (values, triggers, reasons)
  * - Current timer status and streak
  * - Recent binge-free periods and achievements
@@ -226,17 +227,19 @@ async function fetchUserContext(userId, userData) {
  */
 async function generateMotivationalMessage(userData, userContext) {
   // Build comprehensive context from user data
-  const context = buildUserContext(userData.onboardingResponses || {}, userContext);
+  const context = buildUserContext(userData.onboardingResponses || {}, userContext, userData);
 
   const systemPrompt = `You are a compassionate and supportive friend helping someone overcome binge eating. 
 Your goal is to send a brief, personal, and motivating message that:
 - Acknowledges their struggle with empathy
 - References their specific progress, achievements, or current situation
 - Reminds them of their "why" and what matters to them
+- Suggests specific coping activities they mentioned (like exercise, meditation, creative outlets, spending time with family/friends, going outdoors, journaling, etc.)
 - Encourages them to stay strong in the moment
 - Feels like it's from a close friend who knows their journey, not a generic therapist
+- Uses their name naturally when provided to create a personal connection
 
-Keep the message to 2-3 sentences maximum. Be warm, personal, and direct. Reference specific details from their journey when possible.`;
+Keep the message to 2-3 sentences maximum. Be warm, personal, and direct. Reference specific details from their journey when possible, especially their preferred coping activities. If their name is provided, use it naturally in the message to make it feel personally addressed.`;
 
   const userPrompt = `Generate a motivational message for someone who is struggling with binge eating right now.
 
@@ -272,10 +275,18 @@ Create a brief, personal message (2-3 sentences) that will help them resist the 
  * Build comprehensive context string from user's data
  * @param {Object} responses - User's onboarding responses
  * @param {Object} userContext - Rich user context with stats and activity
+ * @param {Object} userData - Full user data including name
  * @returns {string} - Comprehensive context string for OpenAI
  */
-function buildUserContext(responses, userContext) {
+function buildUserContext(responses, userContext, userData = {}) {
   const contextParts = [];
+
+  // User's name for personalization
+  if (userData.name && userData.name.trim()) {
+    contextParts.push(`The user's name is ${userData.name.trim()}. Use their name naturally in the message to make it feel personal and direct.`);
+  } else {
+    contextParts.push(`The user's name is not available. Address them directly using "you" in a warm, personal way.`);
+  }
 
   // Basic onboarding information
   if (responses.importanceReason && Array.isArray(responses.importanceReason)) {
@@ -304,6 +315,10 @@ function buildUserContext(responses, userContext) {
 
   if (responses.bingeFrequency && Array.isArray(responses.bingeFrequency)) {
     contextParts.push(`Binge frequency: ${responses.bingeFrequency.join(', ')}`);
+  }
+
+  if (responses.copingActivities && Array.isArray(responses.copingActivities)) {
+    contextParts.push(`Coping activities they can do: ${responses.copingActivities.join(', ')}`);
   }
 
   // Current progress and achievements

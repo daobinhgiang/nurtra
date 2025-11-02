@@ -39,12 +39,21 @@ struct MainAppView: View {
     @State private var navigationPath = NavigationPath()
     @State private var recentPeriods: [BingeFreePeriod] = []
     @State private var showingSettings = false
+    @State private var showingContactUs = false
     
     var body: some View {
         NavigationStack(path: $navigationPath) {
             VStack(spacing: 0) {
-                // Top section with overcome count and settings icon
+                // Top section with contact us and settings buttons
                 HStack {
+                    Button(action: {
+                        showingContactUs = true
+                    }) {
+                        Text("Contact Us")
+                            .font(.body)
+                            .fontWeight(.bold)
+                            .foregroundColor(.blue)
+                    }
                     Spacer()
                     Button(action: {
                         showingSettings = true
@@ -58,7 +67,7 @@ struct MainAppView: View {
                 .padding(.top, 10)
                 
                 VStack(spacing: 8) {
-                    Text("Urge Overcame count")
+                    Text("Urge Win Count")
                         .font(.headline)
                         .foregroundColor(.secondary)
                     Text("\(authManager.overcomeCount)")
@@ -141,7 +150,7 @@ struct MainAppView: View {
                         .padding(.horizontal)
                     } else {
                         NavigationLink(destination: CravingView()) {
-                            Text("Craving!")
+                            Text("I'm Craving, Help!😩")
                                 .font(.title2)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.white)
@@ -196,6 +205,9 @@ struct MainAppView: View {
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
                     .environmentObject(authManager)
+            }
+            .sheet(isPresented: $showingContactUs) {
+                ContactUsView()
             }
         }
     }
@@ -296,6 +308,82 @@ struct SettingsView: View {
             // You might want to show an error alert here
         }
         isDeleting = false
+    }
+}
+
+struct ContactUsView: View {
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            List {
+                Section {
+                    Link(destination: URL(string: "mailto:thomasnqnhat1505@gmail.com")!) {
+                        HStack {
+                            Image(systemName: "envelope.fill")
+                                .foregroundColor(.blue)
+                                .font(.title3)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Email")
+                                    .font(.headline)
+                                Text("thomasnqnhat1505@gmail.com")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+                
+                Section {
+                    Link(destination: URL(string: "tel:+18572774285")!) {
+                        HStack {
+                            Image(systemName: "phone.fill")
+                                .foregroundColor(.blue)
+                                .font(.title3)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Phone")
+                                    .font(.headline)
+                                Text("+1 857-277-4285")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+                
+                Section {
+                    Link(destination: URL(string: "sms:+18572774285")!) {
+                        HStack {
+                            Image(systemName: "message.fill")
+                                .foregroundColor(.blue)
+                                .font(.title3)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Message")
+                                    .font(.headline)
+                                Text("+1 857-277-4285")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+            }
+            .navigationTitle("Contact Us")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
     }
 }
 

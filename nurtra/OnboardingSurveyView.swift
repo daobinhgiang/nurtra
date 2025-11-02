@@ -22,48 +22,54 @@ struct OnboardingSurveyView: View {
         case lifeWithoutBingeOther
         case bingeThoughtsOther
         case bingeTriggersOther
+        case copingActivitiesOther
         case whatMattersMostOther
         case recoveryValuesOther
     }
     @FocusState private var focusedField: FocusedField?
     
     // Step 1: How long have you struggled with binge eating?
-    private let struggleDurationOptions = ["Less than 6 months", "6 months to 1 year", "1-2 years", "2-5 years", "5-10 years", "More than 10 years"]
+    private let struggleDurationOptions = ["⏳ More than 10 years", "🕰️ 5-10 years", "📆 2-5 years", "📅 1-2 years", "🗓️ 6 months to 1 year", "🌱 Less than 6 months"]
     @State private var selectedStruggleDuration: Set<String> = []
     @State private var struggleDurationOtherText: String = ""
     
     // Step 2: How often do binges typically happen?
-    private let bingeFrequencyOptions = ["Daily", "Several times a week", "Weekly", "Bi-weekly", "Monthly", "Occasionally"]
+    private let bingeFrequencyOptions = ["Daily 🔁", "Several times a week 📆", "Weekly 📅", "Bi-weekly 🗓️", "Monthly 🌙", "Occasionally 🌤️"]
     @State private var selectedBingeFrequency: Set<String> = []
     @State private var bingeFrequencyOtherText: String = ""
     
     // Step 3: Why is it important for you to overcome binge eating?
-    private let importanceReasonOptions = ["Physical health", "Mental well-being", "Self-confidence", "Relationships", "Career goals", "Financial stability"]
+    private let importanceReasonOptions = ["Physical health ❤️", "Mental well-being 🧠", "Self-confidence 💪", "Relationships 👥", "Career goals 🎯", "Financial stability 💼"]
     @State private var selectedImportanceReason: Set<String> = []
     @State private var importanceReasonOtherText: String = ""
     
     // Step 4: What would your life look like without binge eating?
-    private let lifeWithoutBingeOptions = ["More energy", "Better self-esteem", "Healthier relationships", "Career advancement", "Financial freedom", "Inner peace"]
+    private let lifeWithoutBingeOptions = ["More energy ⚡️", "Better self-esteem 🌟", "Healthier relationships 💞", "Career advancement 🚀", "Financial freedom 💰", "Inner peace 🕊️"]
     @State private var selectedLifeWithoutBinge: Set<String> = []
     @State private var lifeWithoutBingeOtherText: String = ""
     
     // Step 5: What thoughts usually come up before or during a binge?
-    private let bingeThoughtsOptions = ["I deserve this", "I'll start fresh tomorrow", "I can't control myself", "This is the last time", "I'm already failing", "Food will make me feel better"]
+    private let bingeThoughtsOptions = ["I deserve this 😩", "I'll start fresh tomorrow 🤞", "I can't control myself 😫", "This is the last time 🔄", "I'm already failing 😔", "Food will make me feel better 🍽️"]
     @State private var selectedBingeThoughts: Set<String> = []
     @State private var bingeThoughtsOtherText: String = ""
     
     // Step 6: Are there common situations or feelings that trigger it?
-    private let bingeTriggersOptions = ["Stress", "Boredom", "Loneliness", "Anger", "Sadness", "Celebration"]
+    private let bingeTriggersOptions = ["Stress 😫", "Boredom 😐", "Loneliness 😔", "Anger 😡", "Sadness 😢", "Celebration 🎉"]
     @State private var selectedBingeTriggers: Set<String> = []
     @State private var bingeTriggersOtherText: String = ""
     
-    // Step 7: What matters most to you in life?
-    private let whatMattersMostOptions = ["Family", "Health", "Career", "Personal growth", "Relationships", "Helping others"]
+    // Step 7: What are activities that you could do to cope with your urge to binge?
+    private let copingActivitiesOptions = ["Exercise 🏃‍♀️", "Meditate 🧘‍♀️", "Creative Outlets 🎨", "Spend time with family/friends 👥", "Go outdoors 🌳", "Journal 📝"]
+    @State private var selectedCopingActivities: Set<String> = []
+    @State private var copingActivitiesOtherText: String = ""
+    
+    // Step 8: What matters most to you in life?
+    private let whatMattersMostOptions = ["Family 👨‍👩‍👧‍👦", "Health 🩺", "Career 💼", "Personal growth 🌱", "Relationships 💞", "Helping others 🤝"]
     @State private var selectedWhatMattersMost: Set<String> = []
     @State private var whatMattersMostOtherText: String = ""
     
-    // Step 8: What personal values would you like your recovery to align with?
-    private let recoveryValuesOptions = ["Self-compassion", "Authenticity", "Resilience", "Growth", "Balance", "Integrity"]
+    // Step 9: What personal values would you like your recovery to align with?
+    private let recoveryValuesOptions = ["Self-compassion 💗", "Authenticity 🫶", "Resilience 🛡️", "Growth 🌿", "Balance ⚖️", "Integrity 🌟"]
     @State private var selectedRecoveryValues: Set<String> = []
     @State private var recoveryValuesOtherText: String = ""
     
@@ -74,7 +80,7 @@ struct OnboardingSurveyView: View {
                 Text(titleForStep(step))
                     .font(.title2)
                     .fontWeight(.semibold)
-                ProgressView(value: Double(step + 1), total: 10)
+                ProgressView(value: Double(step + 1), total: 11)
             }
             .padding()
             .contentShape(Rectangle())
@@ -137,13 +143,22 @@ struct OnboardingSurveyView: View {
                 .tag(5)
                 
                 surveySlide(
+                    prompt: "What are activities that you could do to cope with your urge to binge?",
+                    options: copingActivitiesOptions,
+                    selections: $selectedCopingActivities,
+                    otherText: $copingActivitiesOtherText,
+                    focus: .copingActivitiesOther
+                )
+                .tag(6)
+                
+                surveySlide(
                     prompt: "What matters most to you in life?",
                     options: whatMattersMostOptions,
                     selections: $selectedWhatMattersMost,
                     otherText: $whatMattersMostOtherText,
                     focus: .whatMattersMostOther
                 )
-                .tag(6)
+                .tag(7)
                 
                 surveySlide(
                     prompt: "What personal values would you like your recovery to align with?",
@@ -152,15 +167,15 @@ struct OnboardingSurveyView: View {
                     otherText: $recoveryValuesOtherText,
                     focus: .recoveryValuesOther
                 )
-                .tag(7)
+                .tag(8)
                 
-                // Step 8: Explanation screen about Block Apps
+                // Step 9: Explanation screen about Block Apps
                 blockAppsExplanationView()
-                    .tag(8)
-                
-                // Step 9: Block Apps View
-                BlockAppsView()
                     .tag(9)
+                
+                // Step 10: Block Apps View
+                BlockAppsView()
+                    .tag(10)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
             
@@ -176,13 +191,13 @@ struct OnboardingSurveyView: View {
                 
                 Spacer()
                 
-                if step < 7 {
+                if step < 8 {
                     Button("Next") {
                         dismissKeyboard()
                         withAnimation { step += 1 }
                     }
                     .buttonStyle(PrimaryCapsuleStyle())
-                } else if step == 7 {
+                } else if step == 8 {
                     Button(action: {
                         Task {
                             await submitSurvey()
@@ -202,12 +217,12 @@ struct OnboardingSurveyView: View {
                     }
                     .buttonStyle(PrimaryCapsuleStyle())
                     .disabled(isLoading)
-                } else if step == 8 {
+                } else if step == 9 {
                     Button("Continue") {
                         withAnimation { step += 1 }
                     }
                     .buttonStyle(PrimaryCapsuleStyle())
-                } else if step == 9 {
+                } else if step == 10 {
                     Button(action: {
                         authManager.markOnboardingComplete()
                     }) {
@@ -237,10 +252,11 @@ struct OnboardingSurveyView: View {
         case 3: return "Your Vision"
         case 4: return "Your Thoughts"
         case 5: return "Your Triggers"
-        case 6: return "Your Priorities"
-        case 7: return "Your Values"
-        case 8: return "App Blocking Setup"
-        case 9: return "Select Apps to Block"
+        case 6: return "Your Coping Strategies"
+        case 7: return "Your Priorities"
+        case 8: return "Your Values"
+        case 9: return "App Blocking Setup"
+        case 10: return "Select Apps to Block"
         default: return "Welcome"
         }
     }
@@ -333,6 +349,7 @@ struct OnboardingSurveyView: View {
                 lifeWithoutBinge: Array(selectedLifeWithoutBinge) + (lifeWithoutBingeOtherText.isEmpty ? [] : [lifeWithoutBingeOtherText]),
                 bingeThoughts: Array(selectedBingeThoughts) + (bingeThoughtsOtherText.isEmpty ? [] : [bingeThoughtsOtherText]),
                 bingeTriggers: Array(selectedBingeTriggers) + (bingeTriggersOtherText.isEmpty ? [] : [bingeTriggersOtherText]),
+                copingActivities: Array(selectedCopingActivities) + (copingActivitiesOtherText.isEmpty ? [] : [copingActivitiesOtherText]),
                 whatMattersMost: Array(selectedWhatMattersMost) + (whatMattersMostOtherText.isEmpty ? [] : [whatMattersMostOtherText]),
                 recoveryValues: Array(selectedRecoveryValues) + (recoveryValuesOtherText.isEmpty ? [] : [recoveryValuesOtherText])
             )
@@ -345,7 +362,7 @@ struct OnboardingSurveyView: View {
             
             // Mark survey as submitted and move to explanation screen
             surveySubmitted = true
-            withAnimation { step = 8 }
+            withAnimation { step = 9 }
             
         } catch {
             print("Error saving onboarding survey: \(error)")
@@ -369,7 +386,7 @@ struct OnboardingSurveyView: View {
                     .fontWeight(.bold)
                 
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("To help you stay focused on your recovery journey, you'll now set up app blocking.")
+                    Text("To help you stay focused on your recovery journey, let's select trigger apps to block them when you're craving.")
                         .font(.body)
                         .foregroundColor(.primary)
                     
@@ -381,7 +398,7 @@ struct OnboardingSurveyView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("When You're Craving")
                                     .font(.headline)
-                                Text("Apps will be blocked ONLY when you use the 'Craving!' feature, helping you stay focused on your recovery.")
+                                Text("Press the \"I'm Craving!\" button on the home screen to block trigger apps.")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                             }

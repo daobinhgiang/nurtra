@@ -26,12 +26,12 @@ class OpenAIService {
     
     // MARK: - Generate Motivational Quotes
     
-    func generateMotivationalQuotes(from responses: OnboardingSurveyResponses) async throws -> [String] {
+    func generateMotivationalQuotes(from responses: OnboardingSurveyResponses, userName: String? = nil) async throws -> [String] {
         guard !apiKey.isEmpty else {
             throw OpenAIError.missingAPIKey
         }
         
-        let prompt = buildPrompt(from: responses)
+        let prompt = buildPrompt(from: responses, userName: userName)
         
         let requestBody: [String: Any] = [
             "model": "gpt-3.5-turbo",
@@ -77,18 +77,27 @@ class OpenAIService {
     
     // MARK: - Helper Methods
     
-    private func buildPrompt(from responses: OnboardingSurveyResponses) -> String {
+    private func buildPrompt(from responses: OnboardingSurveyResponses, userName: String? = nil) -> String {
         let struggleDuration = responses.struggleDuration.joined(separator: ", ")
         let bingeFrequency = responses.bingeFrequency.joined(separator: ", ")
         let importanceReason = responses.importanceReason.joined(separator: ", ")
         let lifeWithoutBinge = responses.lifeWithoutBinge.joined(separator: ", ")
         let bingeThoughts = responses.bingeThoughts.joined(separator: ", ")
         let bingeTriggers = responses.bingeTriggers.joined(separator: ", ")
+        let copingActivities = responses.copingActivities.joined(separator: ", ")
         let whatMattersMost = responses.whatMattersMost.joined(separator: ", ")
         let recoveryValues = responses.recoveryValues.joined(separator: ", ")
         
+        let nameContext = if let name = userName, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            "This person's name is \(name). Use their name naturally in the quotes to make them feel personally addressed."
+        } else {
+            "Address them directly using 'you' since their name is not available."
+        }
+        
         return """
         Based on the following information about a person's binge eating recovery journey, generate exactly 10 personalized quotes that sound like they're coming from a close peer who's been there and understands. Make each quote unique, authentic, and deeply connected to their specific situation and values.
+        
+        \(nameContext)
         
         Their Journey:
         - Duration of struggle: \(struggleDuration)
@@ -97,6 +106,7 @@ class OpenAIService {
         - Their vision without binge eating: \(lifeWithoutBinge)
         - Common thoughts during binges: \(bingeThoughts)
         - Triggers: \(bingeTriggers)
+        - Coping activities they can do: \(copingActivities)
         - What matters most to them: \(whatMattersMost)
         - Recovery values: \(recoveryValues)
         
@@ -106,12 +116,14 @@ class OpenAIService {
         3. Write like a close friend/peer speaking casually and directly
         4. Structure the quotes as follows:
            - Quotes 1-3: Guilt trip them for relapsing (but from a caring place)
-           - Quotes 4-7: Remind them of what they value and their "why"
-           - Quotes 8-10: Motivate and encourage them forward
+           - Quotes 4-6: Remind them of what they value and their "why"
+           - Quotes 7-8: Remind them of their specific coping activities they mentioned (like exercise, meditation, creative outlets, spending time with family/friends, going outdoors, journaling, etc.)
+           - Quotes 9-10: Motivate and encourage them forward
         5. Make them personal to their specific struggles, triggers, and values
         6. Use casual, peer-to-peer language (like "you know this isn't you" or "remember when you told me...")
         7. Reference their specific journey details naturally
-        8. Format as a numbered list (1. Quote 1\n2. Quote 2\n...)
+        8. When their name is provided, use it naturally in some quotes (not all) to create personal connection
+        9. Format as a numbered list (1. Quote 1\n2. Quote 2\n...)
         
         Generate the 10 quotes now:
         """

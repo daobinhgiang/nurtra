@@ -57,12 +57,20 @@ class AuthenticationManager: ObservableObject {
     
     // MARK: - Email/Password Authentication
     
-    func signUp(email: String, password: String) async throws {
+    func signUp(email: String, password: String, name: String) async throws {
         do {
             let result = try await Auth.auth().createUser(withEmail: email, password: password)
             self.user = result.user
             self.isAuthenticated = true
             self.errorMessage = nil
+            // Update Firebase Auth display name when provided
+            if !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                let changeRequest = result.user.createProfileChangeRequest()
+                changeRequest.displayName = name
+                try await changeRequest.commitChanges()
+            }
+            // Persist basic profile to Firestore
+            await upsertUserProfile(name: name)
             await fetchOvercomeCount()
         } catch {
             self.errorMessage = error.localizedDescription
@@ -115,6 +123,8 @@ class AuthenticationManager: ObservableObject {
             self.user = authResult.user
             self.isAuthenticated = true
             self.errorMessage = nil
+            // Upsert profile using available display name
+            await upsertUserProfile(name: authResult.user.displayName)
             await fetchOvercomeCount()
         } catch {
             self.errorMessage = error.localizedDescription
@@ -152,6 +162,11 @@ class AuthenticationManager: ObservableObject {
             self.user = result.user
             self.isAuthenticated = true
             self.errorMessage = nil
+            // Construct a best-effort name from Apple credential (available only first time)
+            let given = appleIDCredential.fullName?.givenName ?? ""
+            let family = appleIDCredential.fullName?.familyName ?? ""
+            let appleName = (given + " " + family).trimmingCharacters(in: .whitespaces)
+            await upsertUserProfile(name: appleName.isEmpty ? result.user.displayName : appleName)
             await fetchOvercomeCount()
         } catch {
             self.errorMessage = error.localizedDescription
@@ -290,6 +305,27 @@ class AuthenticationManager: ObservableObject {
         try await db.collection("users").document(userId).delete()
         
         print("✅ User data successfully deleted from Firestore")
+    }
+
+    // MARK: - User Profile
+
+    private func upsertUserProfile(name: String?) async {
+        guard let user = Auth.auth().currentUser else { return }
+        let trimmedName = name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        var data: [String: Any] = [
+            "email": user.email ?? "",
+            "updatedAt": Timestamp(date: Date())
+        ]
+        if !trimmedName.isEmpty {
+            data["name"] = trimmedName
+        } else if let display = user.displayName, !display.isEmpty {
+            data["name"] = display
+        }
+        do {
+            try await Firestore.firestore().collection("users").document(user.uid).setData(data, merge: true)
+        } catch {
+            print("❌ Failed to upsert user profile: \(error.localizedDescription)")
+        }
     }
     
     // MARK: - Onboarding Methods
