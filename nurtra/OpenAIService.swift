@@ -34,11 +34,25 @@ class OpenAIService {
         let prompt = buildPrompt(from: responses, userName: userName)
         
         let requestBody: [String: Any] = [
-            "model": "gpt-3.5-turbo",
-            "messages": [
+            "model": "gpt-4.1-mini",
+            "messages": [ 
                 [
                     "role": "system",
-                    "content": "You are a compassionate therapist specializing in eating disorder recovery. Generate personalized, empowering motivational quotes."
+                    "content": """
+                    You are a compassionate therapist specializing in eating disorder recovery. Generate personalized, empowering motivational quotes with embedded ElevenLabs audio tags.
+                    
+                    IMPORTANT: Include ElevenLabs v3 audio tags to convey emotion and tone. Place tags BEFORE the relevant phrase or sentence they should apply to.
+                    
+                    Available audio tags:
+                    - Emotional: [CARING] [COMPASSIONATE] [GENTLE] [HOPEFUL] [CONFIDENT] [SERIOUS] [SINCERE] [WARM] [SUPPORTIVE] [MELANCHOLIC] [CONCERNED] [OPTIMISTIC] [PROUD] [TENDER] [THOUGHTFUL] [CALM] [ENCOURAGING]
+                    - Pace: [SLOW] [MEASURED] [PAUSED] [DRAMATIC PAUSE] [STEADY]
+                    - Volume: [SOFT] [WHISPERING] [NORMAL] [EMPHATIC]
+                    - Reactions: [SIGH] [HEAVY SIGH] [HMM]
+                    
+                    Example: "[CARING] [SOFT] You deserve better than this, and deep down, you know it. [PAUSED] [HOPEFUL] Tomorrow is a fresh start."
+                    
+                    Use tags naturally to enhance emotional delivery - don't overuse them. 1-3 tags per quote is ideal.
+                    """
                 ],
                 [
                     "role": "user",
@@ -46,7 +60,7 @@ class OpenAIService {
                 ]
             ],
             "temperature": 0.9,
-            "max_tokens": 1000
+            "max_tokens": 1500
         ]
         
         guard let url = URL(string: endpoint) else {
@@ -116,16 +130,27 @@ class OpenAIService {
         3. Write like a close friend/peer speaking casually and directly
         4. Structure the quotes as follows:
            - Quotes 1-3: Guilt trip them for relapsing (but from a caring place)
+             → Use audio tags like: [CARING] [CONCERNED] [SERIOUS] [GENTLE] [SOFT] [SIGH] [PAUSED]
            - Quotes 4-6: Remind them of what they value and their "why"
-           - Quotes 7-8: Remind them of their specific coping activities they mentioned (like exercise, meditation, creative outlets, spending time with family/friends, going outdoors, journaling, etc.)
+             → Use audio tags like: [SINCERE] [THOUGHTFUL] [WARM] [HOPEFUL] [MEASURED] [DRAMATIC PAUSE]
+           - Quotes 7-8: Remind them of their specific coping activities they mentioned
+             → Use audio tags like: [ENCOURAGING] [OPTIMISTIC] [CONFIDENT] [STEADY] [SUPPORTIVE]
            - Quotes 9-10: Motivate and encourage them forward
+             → Use audio tags like: [HOPEFUL] [PROUD] [CONFIDENT] [OPTIMISTIC] [EMPHATIC] [WARM]
         5. Make them personal to their specific struggles, triggers, and values
         6. Use casual, peer-to-peer language (like "you know this isn't you" or "remember when you told me...")
         7. Reference their specific journey details naturally
         8. When their name is provided, use it naturally in some quotes (not all) to create personal connection
         9. Format as a numbered list (1. Quote 1\n2. Quote 2\n...)
+        10. CRITICAL: Include 1-3 ElevenLabs audio tags per quote, placed BEFORE the words/phrases they apply to
         
-        Generate the 10 quotes now:
+        Audio Tag Examples:
+        - "[CARING] [SOFT] Hey, you promised yourself you'd try harder today."
+        - "[SIGH] [THOUGHTFUL] Remember why you started this journey? [PAUSED] [HOPEFUL] That version of you is still waiting."
+        - "[ENCOURAGING] You said meditation helps - why not take five minutes right now?"
+        - "[CONFIDENT] [EMPHATIC] You've come too far to let one moment define your entire journey."
+        
+        Generate the 10 quotes now with audio tags:
         """
     }
     

@@ -35,6 +35,34 @@ struct CravingView: View {
         return quotes[currentQuoteIndex].text
     }
     
+    private var currentQuoteDisplayText: String {
+        guard !quotes.isEmpty else { return "Loading..." }
+        return stripAudioTags(from: quotes[currentQuoteIndex].text)
+    }
+    
+    /// Remove ElevenLabs audio tags from text for display
+    private func stripAudioTags(from text: String) -> String {
+        // Remove all patterns like [CARING], [SOFT], [PAUSED], etc.
+        // Using regex to match [WORD] or [WORD WORD] patterns
+        let pattern = "\\[([A-Z]+\\s?[A-Z]*)\\]\\s?"
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
+            return text
+        }
+        
+        let range = NSRange(text.startIndex..., in: text)
+        let cleanedText = regex.stringByReplacingMatches(
+            in: text,
+            options: [],
+            range: range,
+            withTemplate: ""
+        )
+        
+        // Clean up any extra whitespace that might result from tag removal
+        return cleanedText
+            .replacingOccurrences(of: "  ", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
     private func playCurrentQuoteAndContinue() {
         // Check if view is still active before starting
         guard isViewActive && !quotes.isEmpty else { 
@@ -152,7 +180,7 @@ struct CravingView: View {
             VStack(spacing: 0) {
                 // Timer display at the top center
                 VStack(spacing: 10) {
-                    Text("Binge-free Time")
+                    Text("This urge will pass-wait it out.")
                         .font(.system(.headline, design: .rounded))
                         .fontWeight(.semibold)
                         .foregroundColor(.white)
@@ -219,7 +247,7 @@ struct CravingView: View {
                 
                 // Motivational Quote Display
                 VStack(spacing: 12) {
-                    Text(currentQuote)
+                    Text(currentQuoteDisplayText)
                         .font(.system(.body, design: .rounded))
                         .fontWeight(.medium)
                         .foregroundColor(.white)

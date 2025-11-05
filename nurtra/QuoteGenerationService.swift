@@ -10,6 +10,7 @@ import Foundation
 @MainActor
 class QuoteGenerationService {
     private let openAIService = OpenAIService()
+    private let elevenLabsService = ElevenLabsService()
     private let firestoreManager: FirestoreManager
     
     init(firestoreManager: FirestoreManager) {
@@ -44,7 +45,11 @@ class QuoteGenerationService {
             print("💾 Saving quotes to Firestore...")
             try await firestoreManager.saveMotivationalQuotes(quotes: quotes)
             
-            print("✅ Quote generation completed successfully!")
+            // Step 4: Pre-cache audio for all quotes
+            print("🎙️  Pre-caching audio for all quotes...")
+            await elevenLabsService.preCacheAudioForQuotes(quotes)
+            
+            print("✅ Quote generation and audio pre-caching completed successfully!")
             
         } catch let error as OpenAIError {
             print("❌ OpenAI Error: \(error.localizedDescription)")
