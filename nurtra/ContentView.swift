@@ -16,12 +16,23 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var authManager: AuthenticationManager
+    @EnvironmentObject var subscriptionManager: SubscriptionManager
+    @State private var isInitializing = true
     
     var body: some View {
         Group {
-            if authManager.isAuthenticated {
+            if isInitializing {
+                // Show loading screen while checking blocking status
+                ZStack {
+                    Color.white.ignoresSafeArea()
+                    ProgressView()
+                }
+            } else if authManager.isAuthenticated {
                 if authManager.needsOnboarding {
                     OnboardingSurveyView()
+                } else if authManager.hasCompletedFirstBingeSurvey && !subscriptionManager.isSubscribed {
+                    // Show paywall blocker if user completed first binge survey but hasn't subscribed
+                    PaywallBlockerView()
                 } else {
                     MainAppView()
                 }
@@ -29,17 +40,55 @@ struct ContentView: View {
                 LoginView()
             }
         }
+        .task {
+            // Wait for managers to complete their initialization checks
+            // SubscriptionManager already checks in init, AuthenticationManager checks in init
+            // Just wait a brief moment for async init tasks to complete
+            await waitForInitialChecks()
+        }
+        .onChange(of: authManager.isAuthenticated) { isAuthenticated in
+            // Only re-check if user just logged in (not on logout)
+            if isAuthenticated {
+                Task {
+                    // Only check binge survey status (subscription already checked by manager)
+                    await authManager.checkFirstBingeSurveyStatus()
+                }
+            } else {
+                // Reset initialization state on logout
+                isInitializing = true
+            }
+        }
+    }
+    
+    private func waitForInitialChecks() async {
+        // Give managers a moment to complete their async initialization
+        // SubscriptionManager checks in init, AuthenticationManager checks in init
+        try? await Task.sleep(nanoseconds: 50_000_000) // 0.05 seconds (reduced from 0.1)
+        
+        // Only check binge survey status if authenticated and not already checked
+        // This prevents redundant Firestore reads if AuthenticationManager already checked
+        if authManager.isAuthenticated {
+            await authManager.checkFirstBingeSurveyStatus()
+        }
+        
+        isInitializing = false
     }
 }
 
 struct MainAppView: View {
     @EnvironmentObject var authManager: AuthenticationManager
     @EnvironmentObject var timerManager: TimerManager
+    @EnvironmentObject var subscriptionManager: SubscriptionManager
     @StateObject private var firestoreManager = FirestoreManager()
     @State private var navigationPath = NavigationPath()
     @State private var recentPeriods: [BingeFreePeriod] = []
     @State private var showingSettings = false
     @State private var showingContactUs = false
+    
+    // Check if paywall should be blocking
+    private var shouldBlockForPaywall: Bool {
+        authManager.hasCompletedFirstBingeSurvey && !subscriptionManager.isSubscribed
+    }
     
     var body: some View {
         NavigationStack(path: $navigationPath) {
@@ -47,21 +96,27 @@ struct MainAppView: View {
                 // Top section with contact us and settings buttons
                 HStack {
                     Button(action: {
-                        showingContactUs = true
+                        if !shouldBlockForPaywall {
+                            showingContactUs = true
+                        }
                     }) {
                         Text("Contact Us")
                             .font(.body)
                             .fontWeight(.bold)
                             .foregroundColor(.blue)
                     }
+                    .disabled(shouldBlockForPaywall)
                     Spacer()
                     Button(action: {
-                        showingSettings = true
+                        if !shouldBlockForPaywall {
+                            showingSettings = true
+                        }
                     }) {
                         Image(systemName: "gearshape.fill")
                             .font(.title2)
                             .foregroundColor(.blue)
                     }
+                    .disabled(shouldBlockForPaywall)
                 }
                 .padding(.horizontal)
                 .padding(.top, 10)
@@ -160,6 +215,7 @@ struct MainAppView: View {
                                 .cornerRadius(10)
                         }
                         .padding(.horizontal)
+                        .disabled(shouldBlockForPaywall)
                     }
                 }
                 .padding(.bottom, 20)
@@ -183,6 +239,13 @@ struct MainAppView: View {
                 Task {
                     await fetchRecentPeriods()
                 }
+                
+                // If paywall should be blocking, this shouldn't be accessible
+                // The ContentView should have already shown PaywallBlockerView
+                // But add this as a safeguard
+                if shouldBlockForPaywall {
+                    print("⚠️ MainAppView appeared but paywall should be blocking - check ContentView logic")
+                }
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
@@ -197,6 +260,7 @@ struct MainAppView: View {
     private func fetchRecentPeriods() async {
         do {
             recentPeriods = try await firestoreManager.fetchRecentBingeFreePeriods(limit: 3)
+            
         } catch {
             print("Error fetching recent periods: \(error.localizedDescription)")
         }
@@ -213,6 +277,7 @@ struct MainAppView: View {
 
 struct SettingsView: View {
     @EnvironmentObject var authManager: AuthenticationManager
+    @EnvironmentObject var subscriptionManager: SubscriptionManager
     @Environment(\.dismiss) private var dismiss
     @State private var showingDeleteConfirmation = false
     @State private var isDeleting = false
@@ -236,6 +301,37 @@ struct SettingsView: View {
                         Spacer()
                     }
                     .padding(.vertical, 8)
+                }
+                
+                Section {
+                    HStack {
+                        Image(systemName: "star.fill")
+                            .foregroundColor(.yellow)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Subscription Status")
+                                .font(.headline)
+                            Text(subscriptionManager.isSubscribed ? "Premium Active" : "Free Plan")
+                                .font(.caption)
+                                .foregroundColor(subscriptionManager.isSubscribed ? .green : .secondary)
+                        }
+                        Spacer()
+                    }
+                    
+                    if !subscriptionManager.isSubscribed {
+                        Button(action: {
+                            subscriptionManager.showPaywall(for: "campaign_trigger")
+                        }) {
+                            HStack {
+                                Image(systemName: "crown.fill")
+                                    .foregroundColor(.yellow)
+                                Text("Upgrade to Premium")
+                                    .foregroundColor(.blue)
+                                Spacer()
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Subscription")
                 }
                 
                 Section {

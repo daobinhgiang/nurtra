@@ -11,6 +11,7 @@ import FirebaseAuth
 import FirebaseMessaging
 import GoogleSignIn
 import UserNotifications
+import SuperwallKit
 
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate {
@@ -20,6 +21,17 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
   func application(_ application: UIApplication,
                    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
     FirebaseApp.configure()
+    
+    // Configure Superwall
+    Superwall.configure(apiKey: Secrets.superwallAPIKey)
+    
+    // Set user attributes if user is authenticated
+    if let userId = Auth.auth().currentUser?.uid {
+      Superwall.shared.setUserAttributes([
+        "userId": userId,
+        "email": Auth.auth().currentUser?.email ?? ""
+      ])
+    }
     
     // Set up notification delegates
     UNUserNotificationCenter.current().delegate = self
@@ -193,6 +205,19 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     print("📬 User interacted with notification: \(response.notification.request.content.userInfo)")
     completionHandler()
   }
+    
+    // MARK: - Superwall User Attributes
+    
+    func updateSuperwallUserAttributes() {
+        guard let user = Auth.auth().currentUser else {
+            return
+        }
+        
+        Superwall.shared.setUserAttributes([
+            "userId": user.uid,
+            "email": user.email ?? ""
+        ])
+    }
 }
 
 @main
@@ -201,6 +226,7 @@ struct Nurtra_V2App: App {
     @StateObject private var authManager = AuthenticationManager()
     @StateObject private var timerManager = TimerManager()
     @StateObject private var firestoreManager = FirestoreManager()
+    @StateObject private var subscriptionManager = SubscriptionManager()
     
     init() {
         // Pass FirestoreManager to AppDelegate for FCM token saving
@@ -212,6 +238,7 @@ struct Nurtra_V2App: App {
             ContentView()
                 .environmentObject(authManager)
                 .environmentObject(timerManager)
+                .environmentObject(subscriptionManager)
                 .onAppear {
                     timerManager.setFirestoreManager(firestoreManager)
                     // Also pass to AppDelegate for notification token handling

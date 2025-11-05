@@ -15,6 +15,7 @@
 		CA984C0E2EB11CAC00582400 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = CA984C0D2EB11CAC00582400 /* FirebaseCore */; };
 		CA984C102EB11CAC00582400 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = CA984C0F2EB11CAC00582400 /* FirebaseFirestore */; };
 		CA984C122EB11CAC00582400 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = CA984C112EB11CAC00582400 /* FirebaseFunctions */; };
+		CAE1E7FB2EBA88EE00C751E0 /* SuperwallKit in Frameworks */ = {isa = PBXBuildFile; productRef = CAE1E7FA2EBA88EE00C751E0 /* SuperwallKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -74,6 +75,7 @@
 			files = (
 				CA02C2302EB27E91008ECEE2 /* FirebaseMessaging in Frameworks */,
 				CA984C042EB11A4600582400 /* GoogleSignIn in Frameworks */,
+				CAE1E7FB2EBA88EE00C751E0 /* SuperwallKit in Frameworks */,
 				CA984C122EB11CAC00582400 /* FirebaseFunctions in Frameworks */,
 				CA984C0E2EB11CAC00582400 /* FirebaseCore in Frameworks */,
 				CA984C062EB11A4600582400 /* GoogleSignInSwift in Frameworks */,
@@ -143,6 +145,7 @@
 				CA984C0F2EB11CAC00582400 /* FirebaseFirestore */,
 				CA984C112EB11CAC00582400 /* FirebaseFunctions */,
 				CA02C22F2EB27E91008ECEE2 /* FirebaseMessaging */,
+				CAE1E7FA2EBA88EE00C751E0 /* SuperwallKit */,
 			);
 			productName = "Nurtra V2";
 			productReference = CA3395BE2EAFFCE8003BBE6E /* nurtra.app */;
@@ -175,6 +178,7 @@
 			packageReferences = (
 				CA984C022EB11A4600582400 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 				CA984C072EB11B2200582400 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				CAE1E7F92EBA88EE00C751E0 /* XCRemoteSwiftPackageReference "Superwall-iOS" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CA3395BF2EAFFCE8003BBE6E /* Products */;
@@ -335,9 +339,9 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = nurtra/nurtra.entitlements;
 				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 3DK6P74YHP;
 				ENABLE_PREVIEWS = YES;
-				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = nurtra/Info.plist;
 				INFOPLIST_KEY_CFBundleURLTypes = "{\n    CFBundleTypeRole = Editor;\n    CFBundleURLSchemes =     (\n        \"com.googleusercontent.apps.420916737489-jsnpodu2muqmvipgp0a62d5dub1ivu7a\"\n    );\n}";
@@ -374,9 +378,9 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = nurtra/nurtra.entitlements;
 				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 3DK6P74YHP;
 				ENABLE_PREVIEWS = YES;
-				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = nurtra/Info.plist;
 				INFOPLIST_KEY_CFBundleURLTypes = "{\n    CFBundleTypeRole = Editor;\n    CFBundleURLSchemes =     (\n        \"com.googleusercontent.apps.420916737489-jsnpodu2muqmvipgp0a62d5dub1ivu7a\"\n    );\n}";
@@ -446,6 +450,14 @@
 				minimumVersion = 12.4.0;
 			};
 		};
+		CAE1E7F92EBA88EE00C751E0 /* XCRemoteSwiftPackageReference "Superwall-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/superwall/Superwall-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.9.3;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -488,6 +500,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = CA984C072EB11B2200582400 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseFunctions;
+		};
+		CAE1E7FA2EBA88EE00C751E0 /* SuperwallKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CAE1E7F92EBA88EE00C751E0 /* XCRemoteSwiftPackageReference "Superwall-iOS" */;
+			productName = SuperwallKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -13,6 +13,7 @@ import ManagedSettings
 struct CravingView: View {
     @EnvironmentObject var timerManager: TimerManager
     @EnvironmentObject var authManager: AuthenticationManager
+    @EnvironmentObject var subscriptionManager: SubscriptionManager
     @Environment(\.dismiss) var dismiss
     @State private var showSurvey = false
     @StateObject private var firestoreManager = FirestoreManager()
@@ -240,6 +241,8 @@ struct CravingView: View {
                     // When survey is complete, dismiss CravingView too
                     dismiss()
                 })
+                .environmentObject(authManager)
+                .environmentObject(subscriptionManager)
             } label: {
                 EmptyView()
             }
@@ -254,5 +257,6 @@ struct CravingView: View {
         CravingView()
             .environmentObject(TimerManager())
             .environmentObject(AuthenticationManager())
+            .environmentObject(SubscriptionManager())
     }
 }

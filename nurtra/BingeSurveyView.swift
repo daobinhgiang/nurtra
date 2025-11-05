@@ -10,9 +10,13 @@ import SwiftUI
 struct BingeSurveyView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var timerManager: TimerManager
+    @EnvironmentObject var authManager: AuthenticationManager
+    @EnvironmentObject var subscriptionManager: SubscriptionManager
+    @StateObject private var firestoreManager = FirestoreManager()
     let onComplete: () -> Void
 
     @State private var step: Int = 0
+    @State private var isSubmitting = false
 
     // Focus for text fields
     private enum FocusedField: Hashable {
@@ -102,14 +106,12 @@ struct BingeSurveyView: View {
                 } else {
                     Button("Submit") {
                         dismissKeyboard()
-                        // Dismiss this view first
-                        dismiss()
-                        // Then trigger the parent to dismiss too
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            onComplete()
+                        Task {
+                            await submitSurvey()
                         }
                     }
                     .buttonStyle(PrimaryCapsuleStyle())
+                    .disabled(isSubmitting)
                 }
             }
             .padding()
@@ -203,6 +205,49 @@ struct BingeSurveyView: View {
 
     private func dismissKeyboard() {
         focusedField = nil
+    }
+    
+    private func submitSurvey() async {
+        isSubmitting = true
+        
+        // Collect all responses
+        let allFeelings = Array(selectedFeelings) + (feelingsOtherText.isEmpty ? [] : [feelingsOtherText])
+        let allTriggers = Array(selectedTriggers) + (triggersOtherText.isEmpty ? [] : [triggersOtherText])
+        let allNextTime = Array(selectedNextTime) + (nextTimeOtherText.isEmpty ? [] : [nextTimeOtherText])
+        
+        let responses = BingeSurveyResponses(
+            feelings: allFeelings,
+            triggers: allTriggers,
+            nextTime: allNextTime,
+            submittedAt: Date()
+        )
+        
+        do {
+            // Check if this is the first survey BEFORE saving
+            let isFirstSurvey = !authManager.hasCompletedFirstBingeSurvey
+            
+            // Save to Firestore
+            try await firestoreManager.saveBingeSurvey(responses: responses)
+            
+            // Update local auth manager state
+            if isFirstSurvey {
+                authManager.markFirstBingeSurveyComplete()
+                
+                // Trigger paywall for first binge survey
+                subscriptionManager.showPaywall(for: "first_binge_survey")
+            }
+            
+            // Dismiss this view
+            dismiss()
+            
+            // Then trigger the parent to dismiss too
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                onComplete()
+            }
+        } catch {
+            print("❌ Error saving binge survey: \(error)")
+            isSubmitting = false
+        }
     }
 }
 
