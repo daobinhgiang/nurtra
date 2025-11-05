@@ -317,7 +317,46 @@ struct SettingsView: View {
                         Spacer()
                     }
                     
-                    if !subscriptionManager.isSubscribed {
+                    if subscriptionManager.isSubscribed {
+                        // Manage Subscription - Opens App Store subscription management
+                        Button(action: {
+                            openAppStoreSubscriptionManagement()
+                        }) {
+                            HStack {
+                                Image(systemName: "gear.circle.fill")
+                                    .foregroundColor(.blue)
+                                Text("Manage Subscription")
+                                    .foregroundColor(.blue)
+                                Spacer()
+                            }
+                        }
+                        
+                        // Change Plan - Shows paywall to view/change subscription plans
+                        Button(action: {
+                            subscriptionManager.showPaywall(for: "settings_change_plan")
+                        }) {
+                            HStack {
+                                Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
+                                    .foregroundColor(.blue)
+                                Text("Change Plan")
+                                    .foregroundColor(.blue)
+                                Spacer()
+                            }
+                        }
+                        
+                        // Cancel Subscription - Opens App Store subscription management
+                        Button(action: {
+                            openAppStoreSubscriptionManagement()
+                        }) {
+                            HStack {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.red)
+                                Text("Cancel Subscription")
+                                    .foregroundColor(.red)
+                                Spacer()
+                            }
+                        }
+                    } else {
                         Button(action: {
                             subscriptionManager.showPaywall(for: "campaign_trigger")
                         }) {
@@ -332,6 +371,12 @@ struct SettingsView: View {
                     }
                 } header: {
                     Text("Subscription")
+                } footer: {
+                    if subscriptionManager.isSubscribed {
+                        Text("Manage your subscription, change plans, or cancel in the App Store.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
                 
                 Section {
@@ -438,6 +483,14 @@ struct SettingsView: View {
             // You might want to show an error alert here
         }
         isDeleting = false
+    }
+    
+    private func openAppStoreSubscriptionManagement() {
+        // Open App Store subscription management page
+        // This URL will open in the App Store app where users can manage, change, or cancel subscriptions
+        if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
+            UIApplication.shared.open(url)
+        }
     }
 }
 
