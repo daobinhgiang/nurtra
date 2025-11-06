@@ -6,6 +6,7 @@
 //
 
 import FirebaseAuth
+import StoreKit
 enum Screen {
     case home
     case profile
@@ -379,6 +380,58 @@ struct SettingsView: View {
                     }
                 }
                 
+                // Subscription Plans Information (Required by Apple for Auto-Renewable Subscriptions)
+                if !subscriptionManager.availableProducts.isEmpty {
+                    Section {
+                        ForEach(subscriptionManager.availableProducts, id: \.id) { product in
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(product.displayName)
+                                    .font(.headline)
+                                
+                                HStack {
+                                    Text("Duration:")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                    Text(product.subscription?.subscriptionPeriod.localizedDescription ?? "N/A")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                }
+                                
+                                HStack {
+                                    Text("Price:")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                    Text(product.displayPrice)
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                }
+                                
+                                // Show price per month for yearly subscriptions
+                                if let period = product.subscription?.subscriptionPeriod,
+                                   period.unit == .year,
+                                   period.value == 1 {
+                                    HStack {
+                                        Text("Price per month:")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        Text(formatPricePerMonth(product: product))
+                                            .font(.caption)
+                                            .fontWeight(.medium)
+                                            .foregroundColor(.green)
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    } header: {
+                        Text("Subscription Plans")
+                    } footer: {
+                        Text("Payment will be charged to your iTunes Account at confirmation of purchase. Subscriptions automatically renew unless auto-renew is turned off at least 24-hours before the end of the current period. Your account will be charged for renewal within 24-hours prior to the end of the current period. You can manage your subscription and turn off auto-renewal in your Account Settings after purchase.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
                 Section {
                     Button(action: {
                         showingBlockApps = true
@@ -416,6 +469,48 @@ struct SettingsView: View {
                     }
                 } header: {
                     Text("Account")
+                }
+                
+                Section {
+                    Button(action: {
+                        if let url = URL(string: "https://nurtra.app/privacy-policy") {
+                            UIApplication.shared.open(url)
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: "lock.shield.fill")
+                                .foregroundColor(.blue)
+                            Text("Privacy Policy")
+                            Spacer()
+                            Image(systemName: "arrow.up.right.square")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
+                    Button(action: {
+                        if let url = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/") {
+                            UIApplication.shared.open(url)
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: "doc.text.fill")
+                                .foregroundColor(.blue)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Terms of Use (EULA)")
+                                    .foregroundColor(.primary)
+                                Text("Apple Standard End User License Agreement")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "arrow.up.right.square")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                } header: {
+                    Text("Legal")
                 }
                 
                 Section {
@@ -492,6 +587,12 @@ struct SettingsView: View {
             UIApplication.shared.open(url)
         }
     }
+    
+    private func formatPricePerMonth(product: StoreKit.Product) -> String {
+        let yearlyPrice = product.price
+        let monthlyPrice = yearlyPrice / 12
+        return product.priceFormatStyle.locale(product.priceFormatStyle.locale).format(monthlyPrice)
+    }
 }
 
 struct ContactUsView: View {
@@ -566,6 +667,24 @@ struct ContactUsView: View {
                     }
                 }
             }
+        }
+    }
+}
+
+// Extension to provide localized descriptions for subscription periods
+extension StoreKit.Product.SubscriptionPeriod {
+    var localizedDescription: String {
+        switch self.unit {
+        case .day:
+            return value == 1 ? "1 Day" : "\(value) Days"
+        case .week:
+            return value == 1 ? "1 Week" : "\(value) Weeks"
+        case .month:
+            return value == 1 ? "1 Month" : "\(value) Months"
+        case .year:
+            return value == 1 ? "1 Year" : "\(value) Years"
+        @unknown default:
+            return "\(value) \(unit)"
         }
     }
 }

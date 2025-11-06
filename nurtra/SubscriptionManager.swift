@@ -1,18 +1,27 @@
 import Foundation
 import SuperwallKit
 import Combine
+import StoreKit
 
 @MainActor
 class SubscriptionManager: ObservableObject {
     @Published var isSubscribed = false
-    @Published var subscriptionStatus: SubscriptionStatus = .unknown
+    @Published var subscriptionStatus: SuperwallKit.SubscriptionStatus = .unknown
+    @Published var availableProducts: [StoreKit.Product] = []
     
     private var cancellables = Set<AnyCancellable>()
+    
+    // Product IDs - Update these to match your App Store Connect product IDs
+    private let productIDs = [
+        "nurtra",
+        "nurtra_annual"
+    ]
     
     init() {
         // Check initial subscription status
         Task {
             await checkSubscriptionStatus()
+            await loadProducts()
         }
         
         // Listen for subscription status changes
@@ -40,6 +49,21 @@ class SubscriptionManager: ObservableObject {
             } else {
                 self.isSubscribed = false
             }
+        }
+    }
+    
+    /// Load subscription products from App Store
+    func loadProducts() async {
+        do {
+            let products = try await StoreKit.Product.products(for: productIDs)
+            await MainActor.run {
+                self.availableProducts = products.sorted { product1, product2 in
+                    // Sort by price, monthly first
+                    product1.price < product2.price
+                }
+            }
+        } catch {
+            print("Failed to load products: \(error)")
         }
     }
     
