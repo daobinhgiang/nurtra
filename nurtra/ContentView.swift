@@ -136,11 +136,73 @@ struct MainAppView: View {
                 // Middle section - Timer Display (centered)
                 Spacer()
                 
-                VStack(spacing: 20) {
-                    Text(timerManager.timeString(from: timerManager.elapsedTime))
-                        .font(.system(size: 60, weight: .bold, design: .rounded))
-                        .foregroundColor(timerManager.isTimerRunning ? .green : .primary)
-                        .monospacedDigit()
+                if timerManager.isOverOneDayOld(timeInterval: timerManager.elapsedTime) {
+                    // Two-row format for times >= 24 hours
+                    let components = timerManager.getTimeComponents(from: timerManager.elapsedTime)
+                    VStack(spacing: 8) {
+                        // Row 1: Days and Hours
+                        HStack(spacing: 0) {
+                            Text("\(components.days)")
+                                .font(.system(size: 50, weight: .bold, design: .rounded))
+                                .foregroundColor(timerManager.isTimerRunning ? .green : .primary)
+                                .monospacedDigit()
+                            Text("days")
+                                .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                .foregroundColor(.secondary)
+                                .padding(.leading, 4)
+                            
+                            Text(":")
+                                .font(.system(size: 50, weight: .bold, design: .rounded))
+                                .foregroundColor(timerManager.isTimerRunning ? .green : .primary)
+                                .padding(.horizontal, 8)
+                            
+                            Text("\(components.hours)")
+                                .font(.system(size: 50, weight: .bold, design: .rounded))
+                                .foregroundColor(timerManager.isTimerRunning ? .green : .primary)
+                                .monospacedDigit()
+                            Text("hrs")
+                                .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                .foregroundColor(.secondary)
+                                .padding(.leading, 4)
+                        }
+                        
+                        // Row 2: Minutes and Seconds
+                        HStack(spacing: 0) {
+                            Text("\(components.minutes)")
+                                .font(.system(size: 50, weight: .bold, design: .rounded))
+                                .foregroundColor(timerManager.isTimerRunning ? .green : .primary)
+                                .monospacedDigit()
+                            Text("mins")
+                                .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                .foregroundColor(.secondary)
+                                .padding(.leading, 4)
+                            
+                            Text(":")
+                                .font(.system(size: 50, weight: .bold, design: .rounded))
+                                .foregroundColor(timerManager.isTimerRunning ? .green : .primary)
+                                .padding(.horizontal, 8)
+                            
+                            Text("\(components.seconds)")
+                                .font(.system(size: 50, weight: .bold, design: .rounded))
+                                .foregroundColor(timerManager.isTimerRunning ? .green : .primary)
+                                .monospacedDigit()
+                            Text("secs")
+                                .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                .foregroundColor(.secondary)
+                                .padding(.leading, 4)
+                        }
+                    }
+                    .minimumScaleFactor(0.5)
+                    .lineLimit(1)
+                    .padding(.horizontal, 20)
+                } else {
+                    // Original format for times < 24 hours
+                    VStack(spacing: 20) {
+                        Text(timerManager.timeString(from: timerManager.elapsedTime))
+                            .font(.system(size: 60, weight: .bold, design: .rounded))
+                            .foregroundColor(timerManager.isTimerRunning ? .green : .primary)
+                            .monospacedDigit()
+                    }
                 }
                 
                 Spacer()
@@ -212,8 +274,10 @@ struct MainAppView: View {
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(Color.blue)
+                                .background(Color.red)
                                 .cornerRadius(10)
+                                .shadow(color: .red.opacity(0.6), radius: 15, x: 0, y: 0)
+                                .shadow(color: .red.opacity(0.4), radius: 25, x: 0, y: 0)
                         }
                         .padding(.horizontal)
                         .disabled(shouldBlockForPaywall)
@@ -608,7 +672,7 @@ struct ContactUsView: View {
                                 .foregroundColor(.blue)
                                 .font(.title3)
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("Email")
+                                Text("Email Us!📧")
                                     .font(.headline)
                                 Text("thomasnqnhat1505@gmail.com")
                                     .font(.caption)
@@ -627,7 +691,7 @@ struct ContactUsView: View {
                                 .foregroundColor(.blue)
                                 .font(.title3)
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("Phone")
+                                Text("Call Us!🤙")
                                     .font(.headline)
                                 Text("+1 857-277-4285")
                                     .font(.caption)
@@ -646,7 +710,7 @@ struct ContactUsView: View {
                                 .foregroundColor(.blue)
                                 .font(.title3)
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("Message")
+                                Text("Text us!💬")
                                     .font(.headline)
                                 Text("+1 857-277-4285")
                                     .font(.caption)

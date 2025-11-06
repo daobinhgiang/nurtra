@@ -19,7 +19,7 @@ class QuoteGenerationService {
     
     // MARK: - Generate and Save Quotes
     
-    func generateAndSaveQuotes(from responses: OnboardingSurveyResponses) async {
+    func generateAndSaveQuotes(from responses: OnboardingSurveyResponses, progressCallback: ((Int, Int) -> Void)? = nil) async {
         do {
             print("🎯 Starting quote generation in background...")
             
@@ -47,7 +47,7 @@ class QuoteGenerationService {
             
             // Step 4: Pre-cache audio for all quotes
             print("🎙️  Pre-caching audio for all quotes...")
-            await elevenLabsService.preCacheAudioForQuotes(quotes)
+            await elevenLabsService.preCacheAudioForQuotes(quotes, progressCallback: progressCallback)
             
             print("✅ Quote generation and audio pre-caching completed successfully!")
             

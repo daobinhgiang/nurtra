@@ -100,7 +100,7 @@ class ElevenLabsService: NSObject {
     }
     
     /// Pre-cache audio for multiple quotes (used during onboarding)
-    func preCacheAudioForQuotes(_ quotes: [String]) async {
+    func preCacheAudioForQuotes(_ quotes: [String], progressCallback: ((Int, Int) -> Void)? = nil) async {
         guard !apiKey.isEmpty else {
             print("❌ ElevenLabs API key not configured, skipping pre-cache")
             return
@@ -117,6 +117,7 @@ class ElevenLabsService: NSObject {
             if isCached(text: quote) {
                 print("⏭️  Quote \(index + 1)/\(quotes.count): Already cached, skipping")
                 skipCount += 1
+                progressCallback?(index + 1, quotes.count)
                 continue
             }
             
@@ -127,12 +128,17 @@ class ElevenLabsService: NSObject {
                 successCount += 1
                 print("✅ Quote \(index + 1)/\(quotes.count): Cached successfully")
                 
+                // Report progress
+                progressCallback?(index + 1, quotes.count)
+                
                 // Small delay to avoid rate limiting
                 try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
                 
             } catch {
                 failCount += 1
                 print("❌ Quote \(index + 1)/\(quotes.count): Failed to cache - \(error.localizedDescription)")
+                // Still report progress even on failure
+                progressCallback?(index + 1, quotes.count)
             }
         }
         

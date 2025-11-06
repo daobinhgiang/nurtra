@@ -13,6 +13,10 @@ struct OnboardingSurveyView: View {
     @State private var step: Int = 0
     @State private var isLoading = false
     @State private var surveySubmitted = false
+    @State private var showPersonalizationLoading = false
+    @State private var personalizationProgress: Double = 0.0
+    @State private var personalizationCompleted: Int = 0
+    @State private var personalizationTotal: Int = 10
     
     // Focus for text fields
     private enum FocusedField: Hashable {
@@ -74,20 +78,21 @@ struct OnboardingSurveyView: View {
     @State private var recoveryValuesOtherText: String = ""
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Header
-            VStack(alignment: .leading, spacing: 4) {
-                Text(titleForStep(step))
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                ProgressView(value: Double(step + 1), total: 11)
-            }
-            .padding()
-            .contentShape(Rectangle())
-            .onTapGesture { dismissKeyboard() }
-            
-            // Content
-            TabView(selection: $step) {
+        ZStack {
+            VStack(spacing: 0) {
+                // Header
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(titleForStep(step))
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                    ProgressView(value: Double(step + 1), total: 11)
+                }
+                .padding()
+                .contentShape(Rectangle())
+                .onTapGesture { dismissKeyboard() }
+                
+                // Content
+                TabView(selection: $step) {
                 surveySlide(
                     prompt: "How long have you struggled with binge eating?",
                     options: struggleDurationOptions,
@@ -237,6 +242,20 @@ struct OnboardingSurveyView: View {
             .padding()
             .contentShape(Rectangle())
             .onTapGesture { dismissKeyboard() }
+            }
+            
+            // Personalization Loading Overlay
+            if showPersonalizationLoading {
+                Color.white
+                    .ignoresSafeArea()
+                
+                PersonalizationLoadingView(
+                    progress: personalizationProgress,
+                    completedCount: personalizationCompleted,
+                    totalCount: personalizationTotal
+                )
+                .transition(.opacity)
+            }
         }
         .navigationBarTitleDisplayMode(.inline)
         .navigationTitle("Welcome to Nurtra")
@@ -357,8 +376,27 @@ struct OnboardingSurveyView: View {
             // Save to Firestore
             try await firestoreManager.saveOnboardingSurvey(responses: responses)
             
-            // Generate motivational quotes in background (doesn't block user)
-            QuoteGenerationService.generateQuotesInBackground(from: responses, firestoreManager: firestoreManager)
+            isLoading = false
+            
+            // Show personalization loading screen
+            withAnimation {
+                showPersonalizationLoading = true
+            }
+            
+            // Generate motivational quotes and audio with progress tracking
+            let quoteService = QuoteGenerationService(firestoreManager: firestoreManager)
+            await quoteService.generateAndSaveQuotes(from: responses) { completed, total in
+                Task { @MainActor in
+                    self.personalizationCompleted = completed
+                    self.personalizationTotal = total
+                    self.personalizationProgress = Double(completed) / Double(total)
+                }
+            }
+            
+            // Hide loading screen and move to next step
+            withAnimation {
+                showPersonalizationLoading = false
+            }
             
             // Mark survey as submitted and move to explanation screen
             surveySubmitted = true
@@ -367,9 +405,9 @@ struct OnboardingSurveyView: View {
         } catch {
             print("Error saving onboarding survey: \(error)")
             // TODO: Show error message to user
+            isLoading = false
+            showPersonalizationLoading = false
         }
-        
-        isLoading = false
     }
     
     @ViewBuilder

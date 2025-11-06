@@ -180,16 +180,70 @@ struct CravingView: View {
             VStack(spacing: 0) {
                 // Timer display at the top center
                 VStack(spacing: 10) {
-                    Text("This urge will pass-wait it out.")
+                    Text("Ride this urge out-it'll pass.")
                         .font(.system(.headline, design: .rounded))
                         .fontWeight(.semibold)
                         .foregroundColor(.white)
                         .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
                     
-                    Text(timerManager.timeString(from: timerManager.elapsedTime))
-                        .font(.system(size: 42, weight: .bold, design: .rounded))
-                        .foregroundColor(timerManager.isTimerRunning ? .green : .white)
-                        .monospacedDigit()
+                    if timerManager.isOverOneDayOld(timeInterval: timerManager.elapsedTime) {
+                        // Two-row format for times >= 24 hours
+                        let components = timerManager.getTimeComponents(from: timerManager.elapsedTime)
+                        VStack(spacing: 6) {
+                            // Row 1: Days and Hours
+                            HStack(spacing: 0) {
+                                Text("\(components.days)")
+                                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                                    .foregroundColor(timerManager.isTimerRunning ? .green : .white)
+                                    .monospacedDigit()
+                                Text("days")
+                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    .foregroundColor(.white.opacity(0.8))
+                                    .padding(.leading, 3)
+                                
+                                Text(":")
+                                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                                    .foregroundColor(timerManager.isTimerRunning ? .green : .white)
+                                    .padding(.horizontal, 6)
+                                
+                                Text("\(components.hours)")
+                                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                                    .foregroundColor(timerManager.isTimerRunning ? .green : .white)
+                                    .monospacedDigit()
+                                Text("hrs")
+                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    .foregroundColor(.white.opacity(0.8))
+                                    .padding(.leading, 3)
+                            }
+                            
+                            // Row 2: Minutes and Seconds
+                            HStack(spacing: 0) {
+                                Text("\(components.minutes)")
+                                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                                    .foregroundColor(timerManager.isTimerRunning ? .green : .white)
+                                    .monospacedDigit()
+                                Text("mins")
+                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    .foregroundColor(.white.opacity(0.8))
+                                    .padding(.leading, 3)
+                                
+                                Text(":")
+                                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                                    .foregroundColor(timerManager.isTimerRunning ? .green : .white)
+                                    .padding(.horizontal, 6)
+                                
+                                Text("\(components.seconds)")
+                                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                                    .foregroundColor(timerManager.isTimerRunning ? .green : .white)
+                                    .monospacedDigit()
+                                Text("secs")
+                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    .foregroundColor(.white.opacity(0.8))
+                                    .padding(.leading, 3)
+                            }
+                        }
+                        .minimumScaleFactor(0.5)
+                        .lineLimit(1)
                         .shadow(color: timerManager.isTimerRunning ? .green.opacity(0.5) : .black.opacity(0.5), radius: 8, x: 0, y: 2)
                         .scaleEffect(timerScale)
                         .onChange(of: timerManager.isTimerRunning) { isRunning in
@@ -205,6 +259,28 @@ struct CravingView: View {
                                 }
                             }
                         }
+                    } else {
+                        // Original format for times < 24 hours
+                        Text(timerManager.timeString(from: timerManager.elapsedTime))
+                            .font(.system(size: 42, weight: .bold, design: .rounded))
+                            .foregroundColor(timerManager.isTimerRunning ? .green : .white)
+                            .monospacedDigit()
+                            .shadow(color: timerManager.isTimerRunning ? .green.opacity(0.5) : .black.opacity(0.5), radius: 8, x: 0, y: 2)
+                            .scaleEffect(timerScale)
+                            .onChange(of: timerManager.isTimerRunning) { isRunning in
+                                if isRunning {
+                                    pulseAnimation = true
+                                    withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+                                        timerScale = 1.05
+                                    }
+                                } else {
+                                    pulseAnimation = false
+                                    withAnimation(.easeInOut(duration: 0.3)) {
+                                        timerScale = 1.0
+                                    }
+                                }
+                            }
+                    }
                 }
                 .padding(.vertical, 16)
                 .padding(.horizontal, 24)
@@ -297,7 +373,7 @@ struct CravingView: View {
                         HStack(spacing: 8) {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .font(.system(size: 16, weight: .semibold))
-                            Text("I just binged")
+                            Text("Just Binged")
                                 .font(.system(.headline, design: .rounded))
                                 .fontWeight(.semibold)
                         }
@@ -333,7 +409,7 @@ struct CravingView: View {
                         HStack(spacing: 8) {
                             Image(systemName: "checkmark.circle.fill")
                                 .font(.system(size: 16, weight: .semibold))
-                            Text("I overcame it")
+                            Text("Overcame It")
                                 .font(.system(.headline, design: .rounded))
                                 .fontWeight(.semibold)
                         }
