@@ -10,6 +10,7 @@ import Foundation
 @MainActor
 class QuoteGenerationService {
     private let openAIService = OpenAIService()
+    private let elevenLabsService = ElevenLabsService()
     private let firestoreManager: FirestoreManager
     
     init(firestoreManager: FirestoreManager) {
@@ -18,24 +19,37 @@ class QuoteGenerationService {
     
     // MARK: - Generate and Save Quotes
     
-    func generateAndSaveQuotes(from responses: OnboardingSurveyResponses) async {
+    func generateAndSaveQuotes(from responses: OnboardingSurveyResponses, progressCallback: ((Int, Int) -> Void)? = nil) async {
         do {
             print("🎯 Starting quote generation in background...")
             
-            // Step 1: Generate quotes using OpenAI
+            // Step 1: Fetch user's name for personalization
+            print("👤 Fetching user name for personalization...")
+            let userName = try? await firestoreManager.fetchUserName()
+            if let name = userName, !name.isEmpty {
+                print("✅ Found user name: \(name)")
+            } else {
+                print("ℹ️ No user name found, will use generic addressing")
+            }
+            
+            // Step 2: Generate quotes using OpenAI
             print("📝 Calling OpenAI API...")
-            let quotes = try await openAIService.generateMotivationalQuotes(from: responses)
+            let quotes = try await openAIService.generateMotivationalQuotes(from: responses, userName: userName)
             
             print("✨ Generated \(quotes.count) quotes:")
             for (index, quote) in quotes.enumerated() {
                 print("  \(index + 1). \(quote)")
             }
             
-            // Step 2: Save quotes to Firestore
+            // Step 3: Save quotes to Firestore
             print("💾 Saving quotes to Firestore...")
             try await firestoreManager.saveMotivationalQuotes(quotes: quotes)
             
-            print("✅ Quote generation completed successfully!")
+            // Step 4: Pre-cache audio for all quotes
+            print("🎙️  Pre-caching audio for all quotes...")
+            await elevenLabsService.preCacheAudioForQuotes(quotes, progressCallback: progressCallback)
+            
+            print("✅ Quote generation and audio pre-caching completed successfully!")
             
         } catch let error as OpenAIError {
             print("❌ OpenAI Error: \(error.localizedDescription)")

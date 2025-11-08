@@ -13,6 +13,7 @@ import CryptoKit
 import Combine
 import FirebaseCore
 import FirebaseFirestore
+import SuperwallKit
 
 @MainActor
 class AuthenticationManager: ObservableObject {
@@ -21,9 +22,11 @@ class AuthenticationManager: ObservableObject {
     @Published var needsOnboarding = false
     @Published var errorMessage: String?
     @Published var overcomeCount: Int = 0
+    @Published var hasCompletedFirstBingeSurvey: Bool = false
     
     private var currentNonce: String?
     private let firestoreManager = FirestoreManager()
+    private var hasCheckedBingeSurvey = false // Cache to prevent redundant Firestore reads
     
     init() {
         // Check if user is already signed in
@@ -35,6 +38,8 @@ class AuthenticationManager: ObservableObject {
             Task {
                 await checkOnboardingStatus()
                 await fetchOvercomeCount()
+                await checkFirstBingeSurveyStatus()
+                updateSuperwallUserAttributes()
             }
         }
         
@@ -47,9 +52,14 @@ class AuthenticationManager: ObservableObject {
                 if user != nil {
                     await self?.checkOnboardingStatus()
                     await self?.fetchOvercomeCount()
+                    await self?.checkFirstBingeSurveyStatus()
+                    self?.updateSuperwallUserAttributes()
                 } else {
                     self?.needsOnboarding = false
                     self?.overcomeCount = 0
+                    self?.hasCompletedFirstBingeSurvey = false
+                    self?.hasCheckedBingeSurvey = false // Reset cache on logout
+                    Superwall.shared.reset()
                 }
             }
         }
@@ -57,12 +67,20 @@ class AuthenticationManager: ObservableObject {
     
     // MARK: - Email/Password Authentication
     
-    func signUp(email: String, password: String) async throws {
+    func signUp(email: String, password: String, name: String) async throws {
         do {
             let result = try await Auth.auth().createUser(withEmail: email, password: password)
             self.user = result.user
             self.isAuthenticated = true
             self.errorMessage = nil
+            // Update Firebase Auth display name when provided
+            if !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                let changeRequest = result.user.createProfileChangeRequest()
+                changeRequest.displayName = name
+                try await changeRequest.commitChanges()
+            }
+            // Persist basic profile to Firestore
+            await upsertUserProfile(name: name)
             await fetchOvercomeCount()
         } catch {
             self.errorMessage = error.localizedDescription
@@ -115,6 +133,8 @@ class AuthenticationManager: ObservableObject {
             self.user = authResult.user
             self.isAuthenticated = true
             self.errorMessage = nil
+            // Upsert profile using available display name
+            await upsertUserProfile(name: authResult.user.displayName)
             await fetchOvercomeCount()
         } catch {
             self.errorMessage = error.localizedDescription
@@ -152,6 +172,11 @@ class AuthenticationManager: ObservableObject {
             self.user = result.user
             self.isAuthenticated = true
             self.errorMessage = nil
+            // Construct a best-effort name from Apple credential (available only first time)
+            let given = appleIDCredential.fullName?.givenName ?? ""
+            let family = appleIDCredential.fullName?.familyName ?? ""
+            let appleName = (given + " " + family).trimmingCharacters(in: .whitespaces)
+            await upsertUserProfile(name: appleName.isEmpty ? result.user.displayName : appleName)
             await fetchOvercomeCount()
         } catch {
             self.errorMessage = error.localizedDescription
@@ -291,6 +316,27 @@ class AuthenticationManager: ObservableObject {
         
         print("✅ User data successfully deleted from Firestore")
     }
+
+    // MARK: - User Profile
+
+    private func upsertUserProfile(name: String?) async {
+        guard let user = Auth.auth().currentUser else { return }
+        let trimmedName = name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        var data: [String: Any] = [
+            "email": user.email ?? "",
+            "updatedAt": Timestamp(date: Date())
+        ]
+        if !trimmedName.isEmpty {
+            data["name"] = trimmedName
+        } else if let display = user.displayName, !display.isEmpty {
+            data["name"] = display
+        }
+        do {
+            try await Firestore.firestore().collection("users").document(user.uid).setData(data, merge: true)
+        } catch {
+            print("❌ Failed to upsert user profile: \(error.localizedDescription)")
+        }
+    }
     
     // MARK: - Onboarding Methods
     
@@ -307,6 +353,33 @@ class AuthenticationManager: ObservableObject {
     
     func markOnboardingComplete() {
         self.needsOnboarding = false
+    }
+    
+    // MARK: - Binge Survey Status
+    
+    func checkFirstBingeSurveyStatus() async {
+        // Only check if we haven't already checked in this session
+        // This prevents redundant Firestore reads
+        guard !hasCheckedBingeSurvey else {
+            print("✅ Using cached binge survey status: \(hasCompletedFirstBingeSurvey)")
+            return
+        }
+        
+        do {
+            let completed = try await firestoreManager.checkFirstBingeSurveyCompleted()
+            self.hasCompletedFirstBingeSurvey = completed
+            self.hasCheckedBingeSurvey = true
+            print("✅ First binge survey status: \(completed)")
+        } catch {
+            print("❌ Error checking first binge survey status: \(error)")
+            self.hasCompletedFirstBingeSurvey = false
+            self.hasCheckedBingeSurvey = true // Still mark as checked to prevent retries
+        }
+    }
+    
+    func markFirstBingeSurveyComplete() {
+        self.hasCompletedFirstBingeSurvey = true
+        self.hasCheckedBingeSurvey = true // Mark as checked when we know it's complete
     }
     
     // MARK: - Helper Methods
@@ -335,6 +408,24 @@ class AuthenticationManager: ObservableObject {
         }.joined()
         
         return hashString
+    }
+    
+    private func updateSuperwallUserAttributes() {
+        guard let user = Auth.auth().currentUser else {
+            Superwall.shared.reset()
+            return
+        }
+        
+        let attributes: [String: Any] = [
+            "email": user.email ?? "",
+            "uid": user.uid,
+            "isAuthenticated": isAuthenticated,
+            "needsOnboarding": needsOnboarding,
+            "overcomeCount": overcomeCount,
+            "lastLogin": Timestamp(date: Date())
+        ]
+        
+        Superwall.shared.setUserAttributes(attributes)
     }
 }
 

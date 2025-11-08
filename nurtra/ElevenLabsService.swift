@@ -7,6 +7,7 @@
 
 import Foundation
 import AVFoundation
+import CryptoKit
 
 @MainActor
 class ElevenLabsService: NSObject {
@@ -15,6 +16,9 @@ class ElevenLabsService: NSObject {
     private let endpoint: String
     private var audioPlayer: AVAudioPlayer?
     private var onAudioFinished: (() -> Void)?
+    
+    // Audio cache directory
+    private let cacheDirectory: URL
     
     override init() {
         // Read API key and voice ID from Secrets.swift
@@ -31,18 +35,122 @@ class ElevenLabsService: NSObject {
         self.voiceID = voice
         self.endpoint = "https://api.elevenlabs.io/v1/text-to-speech/\(voiceID)"
         
+        // Setup cache directory
+        let fileManager = FileManager.default
+        let cachesDirectory = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first!
+        self.cacheDirectory = cachesDirectory.appendingPathComponent("ElevenLabsAudio", isDirectory: true)
+        
         super.init()
+        
+        // Create cache directory if it doesn't exist
+        if !fileManager.fileExists(atPath: cacheDirectory.path) {
+            try? fileManager.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
+            print("📁 Created audio cache directory at: \(cacheDirectory.path)")
+        }
+    }
+    
+    // MARK: - Cache Management
+    
+    /// Generate a unique cache key (filename) for a quote text
+    private func cacheKey(for text: String) -> String {
+        // Create SHA256 hash of the text to use as filename
+        let inputData = Data(text.utf8)
+        let hash = SHA256.hash(data: inputData)
+        let hashString = hash.compactMap { String(format: "%02x", $0) }.joined()
+        return "\(hashString).mp3"
+    }
+    
+    /// Get the file URL for a cached audio file
+    private func cachedAudioURL(for text: String) -> URL {
+        let filename = cacheKey(for: text)
+        return cacheDirectory.appendingPathComponent(filename)
+    }
+    
+    /// Check if audio is cached for the given text
+    private func isCached(text: String) -> Bool {
+        let url = cachedAudioURL(for: text)
+        return FileManager.default.fileExists(atPath: url.path)
+    }
+    
+    /// Save audio data to cache
+    private func cacheAudio(data: Data, for text: String) throws {
+        let url = cachedAudioURL(for: text)
+        try data.write(to: url)
+        print("💾 Cached audio to: \(url.lastPathComponent)")
+    }
+    
+    /// Load audio data from cache
+    private func loadCachedAudio(for text: String) throws -> Data {
+        let url = cachedAudioURL(for: text)
+        return try Data(contentsOf: url)
+    }
+    
+    /// Clear all cached audio files
+    func clearAudioCache() {
+        let fileManager = FileManager.default
+        do {
+            let files = try fileManager.contentsOfDirectory(at: cacheDirectory, includingPropertiesForKeys: nil)
+            for file in files {
+                try fileManager.removeItem(at: file)
+            }
+            print("🗑️ Cleared \(files.count) cached audio files")
+        } catch {
+            print("❌ Failed to clear audio cache: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Pre-cache audio for multiple quotes (used during onboarding)
+    func preCacheAudioForQuotes(_ quotes: [String], progressCallback: ((Int, Int) -> Void)? = nil) async {
+        guard !apiKey.isEmpty else {
+            print("❌ ElevenLabs API key not configured, skipping pre-cache")
+            return
+        }
+        
+        print("🎵 Starting pre-cache for \(quotes.count) quotes...")
+        
+        var successCount = 0
+        var skipCount = 0
+        var failCount = 0
+        
+        for (index, quote) in quotes.enumerated() {
+            // Skip if already cached
+            if isCached(text: quote) {
+                print("⏭️  Quote \(index + 1)/\(quotes.count): Already cached, skipping")
+                skipCount += 1
+                progressCallback?(index + 1, quotes.count)
+                continue
+            }
+            
+            do {
+                print("🎙️  Quote \(index + 1)/\(quotes.count): Generating audio...")
+                let audioData = try await generateSpeech(text: quote)
+                try cacheAudio(data: audioData, for: quote)
+                successCount += 1
+                print("✅ Quote \(index + 1)/\(quotes.count): Cached successfully")
+                
+                // Report progress
+                progressCallback?(index + 1, quotes.count)
+                
+                // Small delay to avoid rate limiting
+                try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+                
+            } catch {
+                failCount += 1
+                print("❌ Quote \(index + 1)/\(quotes.count): Failed to cache - \(error.localizedDescription)")
+                // Still report progress even on failure
+                progressCallback?(index + 1, quotes.count)
+            }
+        }
+        
+        print("🎉 Pre-cache completed:")
+        print("   ✅ Success: \(successCount)")
+        print("   ⏭️  Skipped: \(skipCount)")
+        print("   ❌ Failed: \(failCount)")
     }
     
     // MARK: - Text-to-Speech
     
     func playTextToSpeech(text: String, onFinished: (() -> Void)? = nil) async {
-        guard !apiKey.isEmpty else {
-            print("❌ ElevenLabs API key not configured")
-            onFinished?()
-            return
-        }
-        
         guard !text.isEmpty && text != "Loading..." else {
             print("❌ Invalid text for speech synthesis")
             onFinished?()
@@ -52,11 +160,34 @@ class ElevenLabsService: NSObject {
         self.onAudioFinished = onFinished
         
         do {
-            print("🎵 Generating speech for: \(text.prefix(50))...")
+            let audioData: Data
             
-            let audioData = try await generateSpeech(text: text)
+            // Check if audio is cached
+            if isCached(text: text) {
+                print("📦 Loading cached audio for: \(text.prefix(50))...")
+                audioData = try loadCachedAudio(for: text)
+                print("✅ Loaded from cache")
+            } else {
+                // Not cached, generate from API
+                guard !apiKey.isEmpty else {
+                    print("❌ ElevenLabs API key not configured")
+                    onFinished?()
+                    return
+                }
+                
+                print("🎵 Generating speech for: \(text.prefix(50))...")
+                audioData = try await generateSpeech(text: text)
+                
+                // Cache the audio for future use
+                do {
+                    try cacheAudio(data: audioData, for: text)
+                } catch {
+                    print("⚠️ Failed to cache audio: \(error.localizedDescription)")
+                    // Continue anyway - caching is not critical
+                }
+            }
             
-            print("✅ Speech generated, playing audio...")
+            print("✅ Playing audio...")
             try await playAudio(data: audioData)
             
         } catch let error as ElevenLabsError {
@@ -75,13 +206,9 @@ class ElevenLabsService: NSObject {
         
         let requestBody: [String: Any] = [
             "text": text,
-            "model_id": "eleven_multilingual_v2",
+            "model_id": "eleven_v3",
             "voice_settings": [
-                "stability": 0.2,
-                "similarity_boost": 0.8,
-                "style": 0.7,
-                "use_speaker_boost": true,
-                "speed": 1.1
+                "stability": 0,
             ]
         ]
         

@@ -13,6 +13,7 @@ import ManagedSettings
 struct CravingView: View {
     @EnvironmentObject var timerManager: TimerManager
     @EnvironmentObject var authManager: AuthenticationManager
+    @EnvironmentObject var subscriptionManager: SubscriptionManager
     @Environment(\.dismiss) var dismiss
     @State private var showSurvey = false
     @StateObject private var firestoreManager = FirestoreManager()
@@ -20,6 +21,9 @@ struct CravingView: View {
     @State private var quotes: [MotivationalQuote] = []
     @State private var currentQuoteIndex: Int = 0
     @State private var isViewActive = false // Controls quote loop and audio generation
+    @State private var quoteOpacity: Double = 1.0
+    @State private var timerScale: CGFloat = 1.0
+    @State private var pulseAnimation: Bool = false
     
     // App blocking functionality
     private let store = ManagedSettingsStore()
@@ -29,6 +33,34 @@ struct CravingView: View {
     private var currentQuote: String {
         guard !quotes.isEmpty else { return "Loading..." }
         return quotes[currentQuoteIndex].text
+    }
+    
+    private var currentQuoteDisplayText: String {
+        guard !quotes.isEmpty else { return "Loading..." }
+        return stripAudioTags(from: quotes[currentQuoteIndex].text)
+    }
+    
+    /// Remove ElevenLabs audio tags from text for display
+    private func stripAudioTags(from text: String) -> String {
+        // Remove all patterns like [CARING], [SOFT], [PAUSED], etc.
+        // Using regex to match [WORD] or [WORD WORD] patterns
+        let pattern = "\\[([A-Z]+\\s?[A-Z]*)\\]\\s?"
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
+            return text
+        }
+        
+        let range = NSRange(text.startIndex..., in: text)
+        let cleanedText = regex.stringByReplacingMatches(
+            in: text,
+            options: [],
+            range: range,
+            withTemplate: ""
+        )
+        
+        // Clean up any extra whitespace that might result from tag removal
+        return cleanedText
+            .replacingOccurrences(of: "  ", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
     
     private func playCurrentQuoteAndContinue() {
@@ -46,10 +78,39 @@ struct CravingView: View {
                     return
                 }
                 
-                // Move to next quote
-                self.currentQuoteIndex = (self.currentQuoteIndex + 1) % self.quotes.count
-                // Play the next quote
-                self.playCurrentQuoteAndContinue()
+                // Animate quote transition
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    self.quoteOpacity = 0
+                }
+                
+                // Move to next quote after fade out
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    self.currentQuoteIndex = (self.currentQuoteIndex + 1) % self.quotes.count
+                    withAnimation(.easeInOut(duration: 0.5)) {
+                        self.quoteOpacity = 1.0
+                    }
+                    // Play the next quote
+                    self.playCurrentQuoteAndContinue()
+                }
+            }
+        }
+    }
+    
+    private func refreshQuotes() {
+        // Stop current playback
+        elevenLabsService.stopAudio()
+        currentQuoteIndex = 0
+        
+        // Fetch and shuffle quotes again for variety
+        Task {
+            do {
+                quotes = try await firestoreManager.fetchMotivationalQuotes()
+                print("🔄 Quotes refreshed with new randomization - \(quotes.count) quotes available")
+                if !quotes.isEmpty {
+                    playCurrentQuoteAndContinue()
+                }
+            } catch {
+                print("Error refreshing quotes: \(error)")
             }
         }
     }
@@ -121,47 +182,205 @@ struct CravingView: View {
             CameraView()
                 .ignoresSafeArea(.all)
             
+            // Subtle gradient overlay for better text readability
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    Color.black.opacity(0.3),
+                    Color.clear,
+                    Color.clear,
+                    Color.black.opacity(0.4)
+                ]),
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea(.all)
+            
             // Overlay UI elements
-            VStack {
+            VStack(spacing: 0) {
                 // Timer display at the top center
-                VStack(spacing: 8) {
-                    Text("Binge-free Time")
-                        .font(.headline)
+                VStack(spacing: 10) {
+                    Text("Ride this urge out-it'll pass.")
+                        .font(.system(.headline, design: .rounded))
                         .fontWeight(.semibold)
                         .foregroundColor(.white)
+                        .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
                     
-                    Text(timerManager.timeString(from: timerManager.elapsedTime))
-                        .font(.system(size: 36, weight: .bold, design: .rounded))
-                        .foregroundColor(timerManager.isTimerRunning ? .green : .white)
-                        .monospacedDigit()
+                    if timerManager.isOverOneDayOld(timeInterval: timerManager.elapsedTime) {
+                        // Two-row format for times >= 24 hours
+                        let components = timerManager.getTimeComponents(from: timerManager.elapsedTime)
+                        VStack(spacing: 6) {
+                            // Row 1: Days and Hours
+                            HStack(spacing: 0) {
+                                Text("\(components.days)")
+                                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                                    .foregroundColor(timerManager.isTimerRunning ? .green : .white)
+                                    .monospacedDigit()
+                                Text("days")
+                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    .foregroundColor(.white.opacity(0.8))
+                                    .padding(.leading, 3)
+                                
+                                Text(":")
+                                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                                    .foregroundColor(timerManager.isTimerRunning ? .green : .white)
+                                    .padding(.horizontal, 6)
+                                
+                                Text("\(components.hours)")
+                                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                                    .foregroundColor(timerManager.isTimerRunning ? .green : .white)
+                                    .monospacedDigit()
+                                Text("hrs")
+                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    .foregroundColor(.white.opacity(0.8))
+                                    .padding(.leading, 3)
+                            }
+                            
+                            // Row 2: Minutes and Seconds
+                            HStack(spacing: 0) {
+                                Text("\(components.minutes)")
+                                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                                    .foregroundColor(timerManager.isTimerRunning ? .green : .white)
+                                    .monospacedDigit()
+                                Text("mins")
+                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    .foregroundColor(.white.opacity(0.8))
+                                    .padding(.leading, 3)
+                                
+                                Text(":")
+                                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                                    .foregroundColor(timerManager.isTimerRunning ? .green : .white)
+                                    .padding(.horizontal, 6)
+                                
+                                Text("\(components.seconds)")
+                                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                                    .foregroundColor(timerManager.isTimerRunning ? .green : .white)
+                                    .monospacedDigit()
+                                Text("secs")
+                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    .foregroundColor(.white.opacity(0.8))
+                                    .padding(.leading, 3)
+                            }
+                        }
+                        .minimumScaleFactor(0.5)
+                        .lineLimit(1)
+                        .shadow(color: timerManager.isTimerRunning ? .green.opacity(0.5) : .black.opacity(0.5), radius: 8, x: 0, y: 2)
+                        .scaleEffect(timerScale)
+                        .onChange(of: timerManager.isTimerRunning) { isRunning in
+                            if isRunning {
+                                pulseAnimation = true
+                                withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+                                    timerScale = 1.05
+                                }
+                            } else {
+                                pulseAnimation = false
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    timerScale = 1.0
+                                }
+                            }
+                        }
+                    } else {
+                        // Original format for times < 24 hours
+                        Text(timerManager.timeString(from: timerManager.elapsedTime))
+                            .font(.system(size: 42, weight: .bold, design: .rounded))
+                            .foregroundColor(timerManager.isTimerRunning ? .green : .white)
+                            .monospacedDigit()
+                            .shadow(color: timerManager.isTimerRunning ? .green.opacity(0.5) : .black.opacity(0.5), radius: 8, x: 0, y: 2)
+                            .scaleEffect(timerScale)
+                            .onChange(of: timerManager.isTimerRunning) { isRunning in
+                                if isRunning {
+                                    pulseAnimation = true
+                                    withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+                                        timerScale = 1.05
+                                    }
+                                } else {
+                                    pulseAnimation = false
+                                    withAnimation(.easeInOut(duration: 0.3)) {
+                                        timerScale = 1.0
+                                    }
+                                }
+                            }
+                    }
                 }
-                .padding(.vertical, 12)
+                .padding(.vertical, 16)
+                .padding(.horizontal, 24)
+                .background(
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color.black.opacity(0.7),
+                                        Color.black.opacity(0.6)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                        
+                        // Glow effect when timer is running
+                        if timerManager.isTimerRunning {
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .stroke(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            .green.opacity(0.6),
+                                            .green.opacity(0.3),
+                                            .clear
+                                        ]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 2
+                                )
+                                .blur(radius: 4)
+                        }
+                    }
+                )
+                .shadow(color: .black.opacity(0.5), radius: 10, x: 0, y: 4)
+                .padding(.top, 20)
                 .padding(.horizontal, 20)
-                .background(Color.black.opacity(0.6))
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .padding(.top, 20) // Reduced padding to move higher
                 
                 // Motivational Quote Display
-                VStack(spacing: 8) {
-                    Text(currentQuote)
-                        .font(.body)
+                VStack(spacing: 12) {
+                    Text(currentQuoteDisplayText)
+                        .font(.system(.body, design: .rounded))
                         .fontWeight(.medium)
                         .foregroundColor(.white)
                         .multilineTextAlignment(.center)
+                        .lineSpacing(4)
+                        .opacity(quoteOpacity)
+                        .animation(.easeInOut(duration: 0.5), value: quoteOpacity)
                 }
-                .padding(.vertical, 18)
+                .padding(.vertical, 20)
+                .padding(.horizontal, 24)
+                .frame(minHeight: 100)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    Color.black.opacity(0.7),
+                                    Color.black.opacity(0.6)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                )
+                .shadow(color: .black.opacity(0.5), radius: 10, x: 0, y: 4)
                 .padding(.horizontal, 20)
-                .background(Color.black.opacity(0.6))
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .padding(.horizontal, 20)
-                .padding(.top, 12)
+                .padding(.top, 20)
                 
                 Spacer()
                 
                 // Bottom buttons in one row with semi-transparent background
-                HStack(spacing: 12) {
+                HStack(spacing: 16) {
                     // Left: I just binged (red)
                     Button(action: {
+                        // Haptic feedback
+                        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+                        impactFeedback.impactOccurred()
+                        
                         // Stop the timer and log the binge-free period
                         Task {
                             if timerManager.isTimerRunning {
@@ -170,37 +389,87 @@ struct CravingView: View {
                             showSurvey = true
                         }
                     }) {
-                        Text("I just binged")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.red)
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: 16, weight: .semibold))
+                            Text("Just Binged")
+                                .font(.system(.headline, design: .rounded))
+                                .fontWeight(.semibold)
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    Color.red.opacity(0.9),
+                                    Color.red.opacity(0.8)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .shadow(color: .red.opacity(0.4), radius: 8, x: 0, y: 4)
                     }
+                    .buttonStyle(PressableButtonStyle())
 
                     // Right: I overcame it (blue)
                     Button(action: {
+                        // Haptic feedback
+                        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+                        impactFeedback.impactOccurred()
+                        
                         Task {
                             await authManager.incrementOvercomeCount()
                             dismiss()
                         }
                     }) {
-                        Text("I overcame it")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue)
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        HStack(spacing: 8) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 16, weight: .semibold))
+                            Text("Overcame It")
+                                .font(.system(.headline, design: .rounded))
+                                .fontWeight(.semibold)
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    Color.blue.opacity(0.9),
+                                    Color.blue.opacity(0.8)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .shadow(color: .blue.opacity(0.4), radius: 8, x: 0, y: 4)
                     }
+                    .buttonStyle(PressableButtonStyle())
                 }
                 .padding(.horizontal, 20)
-                .padding(.vertical, 16)
-                .background(Color.black.opacity(0.4))
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .padding(.vertical, 20)
+                .background(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(Color.black.opacity(0.5))
+                        .background(
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .fill(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color.white.opacity(0.1),
+                                            Color.clear
+                                        ]),
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    )
+                                )
+                        )
+                )
+                .shadow(color: .black.opacity(0.3), radius: 15, x: 0, y: 5)
                 .padding(.horizontal, 20)
                 .padding(.bottom, 50) // Safe area padding
             }
@@ -214,12 +483,16 @@ struct CravingView: View {
                 
                 do {
                     quotes = try await firestoreManager.fetchMotivationalQuotes()
+                    print("📚 Loaded \(quotes.count) personalized quotes (randomized for variety)")
                     // Start playing quotes automatically
                     if !quotes.isEmpty {
+                        currentQuoteIndex = 0
                         playCurrentQuoteAndContinue()
+                    } else {
+                        print("⚠️ No quotes available - user may not have completed onboarding")
                     }
                 } catch {
-                    print("Error fetching quotes: \(error)")
+                    print("❌ Error fetching quotes: \(error)")
                 }
             }
             .onDisappear {
@@ -240,12 +513,25 @@ struct CravingView: View {
                     // When survey is complete, dismiss CravingView too
                     dismiss()
                 })
+                .environmentObject(authManager)
+                .environmentObject(subscriptionManager)
             } label: {
                 EmptyView()
             }
             .hidden()
             .frame(width: 0, height: 0)
         }
+        .navigationBarBackButtonHidden(true)
+    }
+}
+
+// Custom button style for press animations
+struct PressableButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .opacity(configuration.isPressed ? 0.9 : 1.0)
+            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
     }
 }
 
@@ -254,5 +540,6 @@ struct CravingView: View {
         CravingView()
             .environmentObject(TimerManager())
             .environmentObject(AuthenticationManager())
+            .environmentObject(SubscriptionManager())
     }
 }

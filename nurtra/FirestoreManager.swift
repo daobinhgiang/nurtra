@@ -32,6 +32,7 @@ class FirestoreManager: ObservableObject {
                 "lifeWithoutBinge": responses.lifeWithoutBinge,
                 "bingeThoughts": responses.bingeThoughts,
                 "bingeTriggers": responses.bingeTriggers,
+                "copingActivities": responses.copingActivities,
                 "whatMattersMost": responses.whatMattersMost,
                 "recoveryValues": responses.recoveryValues
             ]
@@ -110,9 +111,9 @@ class FirestoreManager: ObservableObject {
             return []
         }
         
-        // Extract quotes in order (1, 2, 3, etc.)
+        // Extract quotes in order (1, 2, 3, etc.) - up to 30 quotes
         var quotes: [MotivationalQuote] = []
-        for i in 1...10 {
+        for i in 1...30 {
             if let text = quotesData["\(i)"] {
                 quotes.append(MotivationalQuote(
                     id: "\(i)",
@@ -123,7 +124,8 @@ class FirestoreManager: ObservableObject {
             }
         }
         
-        return quotes
+        // Return shuffled quotes for variety on each view entry
+        return quotes.shuffled()
     }
     
     // MARK: - Timer Methods
@@ -189,6 +191,57 @@ class FirestoreManager: ObservableObject {
         ]
         
         try await db.collection("users").document(userId).setData(timerData, merge: true)
+    }
+    
+    // MARK: - Binge Survey Methods
+    
+    func saveBingeSurvey(responses: BingeSurveyResponses) async throws {
+        guard let userId = Auth.auth().currentUser?.uid else {
+            throw FirestoreError.noAuthenticatedUser
+        }
+        
+        // Check if this is the first binge survey
+        let isFirstSurvey = try await !checkFirstBingeSurveyCompleted()
+        
+        let surveyData: [String: Any] = [
+            "feelings": responses.feelings,
+            "triggers": responses.triggers,
+            "nextTime": responses.nextTime,
+            "submittedAt": Timestamp(date: responses.submittedAt)
+        ]
+        
+        // Save survey to subcollection
+        try await db.collection("users")
+            .document(userId)
+            .collection("bingeSurveys")
+            .addDocument(data: surveyData)
+        
+        // If this is the first survey, mark it in the user document
+        if isFirstSurvey {
+            let userData: [String: Any] = [
+                "firstBingeSurveyCompleted": true,
+                "firstBingeSurveyCompletedAt": Timestamp(date: Date())
+            ]
+            try await db.collection("users").document(userId).setData(userData, merge: true)
+            print("✅ First binge survey completed and marked in Firestore")
+        }
+        
+        print("✅ Binge survey saved to Firestore")
+    }
+    
+    func checkFirstBingeSurveyCompleted() async throws -> Bool {
+        guard let userId = Auth.auth().currentUser?.uid else {
+            throw FirestoreError.noAuthenticatedUser
+        }
+        
+        let document = try await db.collection("users").document(userId).getDocument()
+        
+        if document.exists {
+            let data = document.data()
+            return data?["firstBingeSurveyCompleted"] as? Bool ?? false
+        } else {
+            return false
+        }
     }
     
     // MARK: - Binge-Free Period Methods
@@ -267,6 +320,23 @@ class FirestoreManager: ObservableObject {
         }
     }
     
+    // MARK: - User Profile Methods
+    
+    func fetchUserName() async throws -> String? {
+        guard let userId = Auth.auth().currentUser?.uid else {
+            throw FirestoreError.noAuthenticatedUser
+        }
+        
+        let document = try await db.collection("users").document(userId).getDocument()
+        
+        if document.exists {
+            let data = document.data()
+            return data?["name"] as? String
+        } else {
+            return nil
+        }
+    }
+    
     // MARK: - Cloud Functions Methods
     
     func sendMotivationalNotification() async throws -> String {
@@ -309,8 +379,16 @@ struct OnboardingSurveyResponses {
     let lifeWithoutBinge: [String]
     let bingeThoughts: [String]
     let bingeTriggers: [String]
+    let copingActivities: [String]
     let whatMattersMost: [String]
     let recoveryValues: [String]
+}
+
+struct BingeSurveyResponses {
+    let feelings: [String]
+    let triggers: [String]
+    let nextTime: [String]
+    let submittedAt: Date
 }
 
 struct MotivationalQuote: Identifiable {

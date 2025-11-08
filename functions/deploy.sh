@@ -25,7 +25,7 @@ fi
 echo "✅ Logged in to Firebase"
 
 # Extract OpenAI API key from Secrets.swift
-echo ""
+echo ""pse
 echo "🔑 Extracting OpenAI API key from Secrets.swift..."
 
 # Path to Secrets.swift file

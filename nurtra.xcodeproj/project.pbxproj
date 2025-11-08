@@ -15,7 +15,21 @@
 		CA984C0E2EB11CAC00582400 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = CA984C0D2EB11CAC00582400 /* FirebaseCore */; };
 		CA984C102EB11CAC00582400 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = CA984C0F2EB11CAC00582400 /* FirebaseFirestore */; };
 		CA984C122EB11CAC00582400 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = CA984C112EB11CAC00582400 /* FirebaseFunctions */; };
+		CAE1E7FB2EBA88EE00C751E0 /* SuperwallKit in Frameworks */ = {isa = PBXBuildFile; productRef = CAE1E7FA2EBA88EE00C751E0 /* SuperwallKit */; };
+		CAE1E8052EBF1A9B00C751E0 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CA984C7A2EB1368700582400 /* WidgetKit.framework */; };
+		CAE1E8062EBF1A9B00C751E0 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CA984C7C2EB1368700582400 /* SwiftUI.framework */; };
+		CAE1E8172EBF1A9C00C751E0 /* LiveActivitiesTestExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CAE1E8042EBF1A9B00C751E0 /* LiveActivitiesTestExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		CAE1E8152EBF1A9C00C751E0 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CA3395B62EAFFCE8003BBE6E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CAE1E8032EBF1A9B00C751E0;
+			remoteInfo = LiveActivitiesTestExtension;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		CA984C932EB1368800582400 /* Embed Foundation Extensions */ = {
@@ -24,6 +38,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
+				CAE1E8172EBF1A9C00C751E0 /* LiveActivitiesTestExtension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -34,6 +49,7 @@
 		CA3395BE2EAFFCE8003BBE6E /* nurtra.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = nurtra.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CA984C7A2EB1368700582400 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		CA984C7C2EB1368700582400 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		CAE1E8042EBF1A9B00C751E0 /* LiveActivitiesTestExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LiveActivitiesTestExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -43,6 +59,13 @@
 				Info.plist,
 			);
 			target = CA3395BD2EAFFCE8003BBE6E /* nurtra */;
+		};
+		CAE1E81B2EBF1A9C00C751E0 /* Exceptions for "LiveActivitiesTest" folder in "LiveActivitiesTestExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = CAE1E8032EBF1A9B00C751E0 /* LiveActivitiesTestExtension */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -65,6 +88,14 @@
 			path = nurtra_timer_widget;
 			sourceTree = "<group>";
 		};
+		CAE1E8072EBF1A9B00C751E0 /* LiveActivitiesTest */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				CAE1E81B2EBF1A9C00C751E0 /* Exceptions for "LiveActivitiesTest" folder in "LiveActivitiesTestExtension" target */,
+			);
+			path = LiveActivitiesTest;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -74,12 +105,22 @@
 			files = (
 				CA02C2302EB27E91008ECEE2 /* FirebaseMessaging in Frameworks */,
 				CA984C042EB11A4600582400 /* GoogleSignIn in Frameworks */,
+				CAE1E7FB2EBA88EE00C751E0 /* SuperwallKit in Frameworks */,
 				CA984C122EB11CAC00582400 /* FirebaseFunctions in Frameworks */,
 				CA984C0E2EB11CAC00582400 /* FirebaseCore in Frameworks */,
 				CA984C062EB11A4600582400 /* GoogleSignInSwift in Frameworks */,
 				CA984C0A2EB11CAC00582400 /* FirebaseAnalytics in Frameworks */,
 				CA984C0C2EB11CAC00582400 /* FirebaseAuth in Frameworks */,
 				CA984C102EB11CAC00582400 /* FirebaseFirestore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CAE1E8012EBF1A9B00C751E0 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CAE1E8062EBF1A9B00C751E0 /* SwiftUI.framework in Frameworks */,
+				CAE1E8052EBF1A9B00C751E0 /* WidgetKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -92,6 +133,7 @@
 				CA3395C02EAFFCE8003BBE6E /* nurtra */,
 				CA984C7E2EB1368700582400 /* nurtra_timer_widget */,
 				CA984C9B2EB136F300582400 /* nurtra_timer_widget */,
+				CAE1E8072EBF1A9B00C751E0 /* LiveActivitiesTest */,
 				CA984C082EB11CAC00582400 /* Frameworks */,
 				CA3395BF2EAFFCE8003BBE6E /* Products */,
 			);
@@ -101,6 +143,7 @@
 			isa = PBXGroup;
 			children = (
 				CA3395BE2EAFFCE8003BBE6E /* nurtra.app */,
+				CAE1E8042EBF1A9B00C751E0 /* LiveActivitiesTestExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -129,6 +172,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				CAE1E8162EBF1A9C00C751E0 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				CA3395C02EAFFCE8003BBE6E /* nurtra */,
@@ -143,10 +187,33 @@
 				CA984C0F2EB11CAC00582400 /* FirebaseFirestore */,
 				CA984C112EB11CAC00582400 /* FirebaseFunctions */,
 				CA02C22F2EB27E91008ECEE2 /* FirebaseMessaging */,
+				CAE1E7FA2EBA88EE00C751E0 /* SuperwallKit */,
 			);
 			productName = "Nurtra V2";
 			productReference = CA3395BE2EAFFCE8003BBE6E /* nurtra.app */;
 			productType = "com.apple.product-type.application";
+		};
+		CAE1E8032EBF1A9B00C751E0 /* LiveActivitiesTestExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CAE1E8182EBF1A9C00C751E0 /* Build configuration list for PBXNativeTarget "LiveActivitiesTestExtension" */;
+			buildPhases = (
+				CAE1E8002EBF1A9B00C751E0 /* Sources */,
+				CAE1E8012EBF1A9B00C751E0 /* Frameworks */,
+				CAE1E8022EBF1A9B00C751E0 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				CAE1E8072EBF1A9B00C751E0 /* LiveActivitiesTest */,
+			);
+			name = LiveActivitiesTestExtension;
+			packageProductDependencies = (
+			);
+			productName = LiveActivitiesTestExtension;
+			productReference = CAE1E8042EBF1A9B00C751E0 /* LiveActivitiesTestExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -159,6 +226,9 @@
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					CA3395BD2EAFFCE8003BBE6E = {
+						CreatedOnToolsVersion = 26.0.1;
+					};
+					CAE1E8032EBF1A9B00C751E0 = {
 						CreatedOnToolsVersion = 26.0.1;
 					};
 				};
@@ -175,6 +245,7 @@
 			packageReferences = (
 				CA984C022EB11A4600582400 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 				CA984C072EB11B2200582400 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				CAE1E7F92EBA88EE00C751E0 /* XCRemoteSwiftPackageReference "Superwall-iOS" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CA3395BF2EAFFCE8003BBE6E /* Products */;
@@ -182,12 +253,20 @@
 			projectRoot = "";
 			targets = (
 				CA3395BD2EAFFCE8003BBE6E /* nurtra */,
+				CAE1E8032EBF1A9B00C751E0 /* LiveActivitiesTestExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		CA3395BC2EAFFCE8003BBE6E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CAE1E8022EBF1A9B00C751E0 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -204,7 +283,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CAE1E8002EBF1A9B00C751E0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		CAE1E8162EBF1A9C00C751E0 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CAE1E8032EBF1A9B00C751E0 /* LiveActivitiesTestExtension */;
+			targetProxy = CAE1E8152EBF1A9C00C751E0 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		CA3395C72EAFFCE9003BBE6E /* Debug */ = {
@@ -341,7 +435,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = nurtra/Info.plist;
 				INFOPLIST_KEY_CFBundleURLTypes = "{\n    CFBundleTypeRole = Editor;\n    CFBundleURLSchemes =     (\n        \"com.googleusercontent.apps.420916737489-jsnpodu2muqmvipgp0a62d5dub1ivu7a\"\n    );\n}";
-				INFOPLIST_KEY_NSCameraUsageDescription = "nurtra woud like camera usage to better support you with your recovery!";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Nurtra uses the camera to display a live camera preview as a visual background, helping you stay present and focused on your recovery journey.";
 				INFOPLIST_KEY_NSFamilyControlsUsageDescription = "nurtra needs access to Screen Time to help you block distracting apps during your recovery.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -349,12 +443,12 @@
 				INFOPLIST_KEY_UIStatusBarHidden = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 18;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.1;
+				MARKETING_VERSION = 2.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.psycholabs.bedApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -380,7 +474,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = nurtra/Info.plist;
 				INFOPLIST_KEY_CFBundleURLTypes = "{\n    CFBundleTypeRole = Editor;\n    CFBundleURLSchemes =     (\n        \"com.googleusercontent.apps.420916737489-jsnpodu2muqmvipgp0a62d5dub1ivu7a\"\n    );\n}";
-				INFOPLIST_KEY_NSCameraUsageDescription = "nurtra woud like camera usage to better support you with your recovery!";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Nurtra uses the camera to display a live camera preview as a visual background during your recovery sessions. For example, when you open the craving view to track your binge-free time, the camera provides a real-time view that helps you stay present and focused on your recovery journey.";
 				INFOPLIST_KEY_NSFamilyControlsUsageDescription = "nurtra needs access to Screen Time to help you block distracting apps during your recovery.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -388,17 +482,79 @@
 				INFOPLIST_KEY_UIStatusBarHidden = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 18;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.1;
+				MARKETING_VERSION = 2.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.psycholabs.bedApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		CAE1E8192EBF1A9C00C751E0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3DK6P74YHP;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LiveActivitiesTest/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = LiveActivitiesTest;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.psycholabs.bedApp.LiveActivitiesTest;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		CAE1E81A2EBF1A9C00C751E0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3DK6P74YHP;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LiveActivitiesTest/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = LiveActivitiesTest;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.psycholabs.bedApp.LiveActivitiesTest;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
@@ -427,6 +583,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		CAE1E8182EBF1A9C00C751E0 /* Build configuration list for PBXNativeTarget "LiveActivitiesTestExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CAE1E8192EBF1A9C00C751E0 /* Debug */,
+				CAE1E81A2EBF1A9C00C751E0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
@@ -444,6 +609,14 @@
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 12.4.0;
+			};
+		};
+		CAE1E7F92EBA88EE00C751E0 /* XCRemoteSwiftPackageReference "Superwall-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/superwall/Superwall-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.9.3;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -488,6 +661,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = CA984C072EB11B2200582400 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseFunctions;
+		};
+		CAE1E7FA2EBA88EE00C751E0 /* SuperwallKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CAE1E7F92EBA88EE00C751E0 /* XCRemoteSwiftPackageReference "Superwall-iOS" */;
+			productName = SuperwallKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

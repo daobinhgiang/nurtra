@@ -14,6 +14,7 @@ struct SignUpView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var confirmPassword = ""
+    @State private var name = ""
     @State private var isLoading = false
     
     var isPasswordValid: Bool {
@@ -25,7 +26,7 @@ struct SignUpView: View {
     }
     
     var isFormValid: Bool {
-        !email.isEmpty && isPasswordValid && doPasswordsMatch
+        !name.isEmpty && !email.isEmpty && isPasswordValid && doPasswordsMatch
     }
     
     var body: some View {
@@ -126,6 +127,18 @@ struct SignUpView: View {
                 // Email/Password Form
                 VStack(spacing: 16) {
                     VStack(alignment: .leading, spacing: 8) {
+                        Text("Name")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                        TextField("Enter your name", text: $name)
+                            .textFieldStyle(.plain)
+                            .textContentType(.name)
+                            .padding()
+                            .background(Color(.systemGray6))
+                            .cornerRadius(8)
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
                         Text("Email")
                             .font(.subheadline)
                             .fontWeight(.medium)
@@ -190,7 +203,7 @@ struct SignUpView: View {
                     Task {
                         isLoading = true
                         do {
-                            try await authManager.signUp(email: email, password: password)
+                            try await authManager.signUp(email: email, password: password, name: name)
                             dismiss()
                         } catch {
                             print("Sign up error: \(error)")
