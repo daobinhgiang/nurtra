@@ -53,23 +53,39 @@ service cloud.firestore {
 1. **Build and run** the app
 2. **Sign up** with a new account
 3. **Complete** the onboarding survey
-4. **Check console logs** for quote generation progress:
+4. **Check console logs** for quote generation and audio pre-caching:
    ```
    🎯 Starting quote generation in background...
    📝 Calling OpenAI API...
    ✨ Generated 10 quotes:
-     1. [Quote text]
-     2. [Quote text]
+     1. [CARING] [SOFT] [Quote text]
+     2. [HOPEFUL] [Quote text]
      ...
    💾 Saving quotes to Firestore...
-   ✅ Quote generation completed successfully!
+   🎙️  Pre-caching audio for all quotes...
+   🎵 Starting pre-cache for 10 quotes...
+   🎙️  Quote 1/10: Generating audio...
+   💾 Cached audio to: a3f8d9c2e1b5f6a7....mp3
+   ✅ Quote 1/10: Cached successfully
+   ...
+   🎉 Pre-cache completed:
+      ✅ Success: 10
+      ⏭️  Skipped: 0
+      ❌ Failed: 0
+   ✅ Quote generation and audio pre-caching completed successfully!
    ```
 
 5. **Verify in Firestore Console**:
    - Navigate to Firestore Database
    - Go to `users/{userId}` document
    - You should see a `motivationalQuotes` field with 10 numbered quotes (1, 2, 3, etc.)
+   - Each quote should include audio tags like [CARING], [HOPEFUL], etc.
    - You should also see `motivationalQuotesGeneratedAt` timestamp
+
+6. **Test Audio Playback**:
+   - Navigate to the Craving screen
+   - Audio should play **immediately** with no delay
+   - Check console for `📦 Loading cached audio...` messages (not `🎵 Generating speech...`)
 
 ## How It Works
 
@@ -88,32 +104,48 @@ OpenAIService.generateMotivationalQuotes()
          ↓
 Build personalized prompt from survey responses
          ↓
-Call OpenAI Chat API (gpt-3.5-turbo)
+Call OpenAI Chat API (gpt-4o-mini)
          ↓
-Parse 10 quotes from response
+Parse 10 quotes from response (with audio tags)
          ↓
 FirestoreManager.saveMotivationalQuotes()
          ↓
-Save each quote as separate document
+Save quotes to Firestore
          ↓
-User can access quotes later (when UI is built)
+ElevenLabsService.preCacheAudioForQuotes() [NEW!]
+         ↓
+Generate audio for all 10 quotes via ElevenLabs v3
+         ↓
+Cache all audio files locally
+         ↓
+User can play quotes instantly from cache in Craving screen
 ```
 
 ### Key Features
 
 1. **Non-Blocking**: Runs in background using `Task.detached`
 2. **Personalized**: Uses all 8 onboarding responses to create tailored quotes
-3. **Error Handling**: Graceful failure - user not blocked if generation fails
-4. **Firestore Structure**: Each quote is a separate document for easy querying
-5. **Logging**: Comprehensive console logs for debugging
+3. **ElevenLabs Audio Tags**: Quotes include emotional audio tags for expressive text-to-speech
+4. **Pre-Cached Audio**: All audio files generated and cached during onboarding
+5. **Instant Playback**: Audio ready before user reaches craving screen
+6. **Error Handling**: Graceful failure - user not blocked if generation fails
+7. **Firestore Structure**: Quotes stored in user document for easy access
+8. **Logging**: Comprehensive console logs for debugging
 
 ## API Details
 
 ### OpenAI Request
-- **Model**: `gpt-3.5-turbo`
+- **Model**: `gpt-4o-mini`
 - **Temperature**: `0.9` (for creative variation)
-- **Max Tokens**: `1000`
-- **System Prompt**: Specialized therapist role for eating disorder recovery
+- **Max Tokens**: `1500` (increased to accommodate audio tags)
+- **System Prompt**: Specialized therapist role for eating disorder recovery with ElevenLabs audio tag instructions
+
+### ElevenLabs Pre-Caching
+- **Triggered**: Automatically after quotes are saved to Firestore
+- **Process**: Sequential generation with 0.5s delay between requests to avoid rate limits
+- **Cache Location**: `~/Library/Caches/ElevenLabsAudio/`
+- **File Format**: MP3 files named with SHA256 hash of quote text
+- **Error Handling**: Failed audio generation doesn't block the process; will retry on first playback
 
 ### Prompt Template
 The prompt includes:
@@ -130,6 +162,52 @@ The prompt includes:
 - Expects numbered list format (1. Quote\n2. Quote\n...)
 - Extracts exactly 10 quotes
 - Validates quote count before saving
+- Quotes include ElevenLabs v3 audio tags like [CARING], [HOPEFUL], [SOFT], [PAUSED]
+
+### ElevenLabs Audio Tags Integration
+
+The quotes are generated with embedded audio tags that ElevenLabs v3 uses to add emotional expression during text-to-speech synthesis. GPT is instructed to:
+
+1. **Place tags before the relevant phrase** they should apply to
+2. **Use 1-3 tags per quote** to avoid overuse
+3. **Choose appropriate tags** based on the quote type:
+   - **Quotes 1-3** (caring accountability): [CARING], [CONCERNED], [SERIOUS], [GENTLE], [SOFT], [SIGH], [PAUSED]
+   - **Quotes 4-6** (values reminder): [SINCERE], [THOUGHTFUL], [WARM], [HOPEFUL], [MEASURED], [DRAMATIC PAUSE]
+   - **Quotes 7-8** (coping activities): [ENCOURAGING], [OPTIMISTIC], [CONFIDENT], [STEADY], [SUPPORTIVE]
+   - **Quotes 9-10** (motivation): [HOPEFUL], [PROUD], [CONFIDENT], [OPTIMISTIC], [EMPHATIC], [WARM]
+
+**Example quotes with audio tags:**
+- `"[CARING] [SOFT] Hey, you promised yourself you'd try harder today."`
+- `"[SIGH] [THOUGHTFUL] Remember why you started this journey? [PAUSED] [HOPEFUL] That version of you is still waiting."`
+- `"[ENCOURAGING] You said meditation helps - why not take five minutes right now?"`
+- `"[CONFIDENT] [EMPHATIC] You've come too far to let one moment define your entire journey."`
+
+When these quotes are sent to ElevenLabs v3 for text-to-speech, the model interprets the tags and generates speech with the specified emotional tones, pauses, and delivery styles. This creates a more human-like, empathetic audio experience.
+
+### Audio Pre-Caching & Quote Mapping
+
+The audio files are automatically pre-generated during onboarding and properly mapped to quotes:
+
+**During Onboarding (Background):**
+1. OpenAI generates 10 quotes with audio tags
+2. Quotes saved to Firestore
+3. **ElevenLabs generates audio for all 10 quotes** (one by one with rate limit protection)
+4. Each audio file cached with SHA256 hash of quote text as filename
+5. All complete before user navigates away from onboarding
+
+**During Craving Screen Playback:**
+1. Quote text loaded from Firestore
+2. SHA256 hash computed from quote text
+3. Audio loaded instantly from local cache
+4. **Zero API calls, zero latency**
+
+**Example**:
+- Quote: `"[CARING] [SOFT] You deserve better than this."`
+- Cache key: `a3f8d9c2e1b5f6a7d8c9b0e1f2a3d4b5c6e7d8a9f0b1c2e3d4a5f6b7c8d9e0a1b2.mp3`
+- Stored: `~/Library/Caches/ElevenLabsAudio/a3f8d9c2e1b5f6a7d8c9b0e1f2a3d4b5c6e7d8a9f0b1c2e3d4a5f6b7c8d9e0a1b2.mp3`
+- First playback: Instant (already cached during onboarding)
+
+This ensures that audio is **always ready** when users need it most - during craving moments.
 
 ## Firestore Data Structure
 
@@ -149,11 +227,11 @@ users/
         recoveryValues: [...]
       }
     - motivationalQuotes: {
-        "1": "Your first personalized quote...",
-        "2": "Your second personalized quote...",
-        "3": "Your third personalized quote...",
+        "1": "[CARING] [SOFT] Your first personalized quote...",
+        "2": "[THOUGHTFUL] Your second personalized quote...",
+        "3": "[HOPEFUL] Your third personalized quote...",
         ...
-        "10": "Your tenth personalized quote..."
+        "10": "[CONFIDENT] [EMPHATIC] Your tenth personalized quote..."
       }
     - motivationalQuotesGeneratedAt: Timestamp
 ```
@@ -205,13 +283,27 @@ do {
 
 ## Cost Estimation
 
-Using `gpt-3.5-turbo`:
+### OpenAI Costs (per user)
+Using `gpt-4o-mini`:
 - **Input tokens**: ~400-600 tokens (prompt with onboarding data)
-- **Output tokens**: ~300-500 tokens (10 quotes)
-- **Cost per user**: ~$0.0010-0.0015 USD
-- **For 1000 users**: ~$1.00-1.50 USD
+- **Output tokens**: ~400-600 tokens (10 quotes with audio tags)
+- **Cost per user**: ~$0.0010-0.0020 USD
+- **For 1000 users**: ~$1.00-2.00 USD
 
-*Prices as of October 2024. Check [OpenAI Pricing](https://openai.com/pricing) for current rates.*
+### ElevenLabs Costs (per user)
+- **Characters per quote**: ~100-150 (including audio tags)
+- **10 quotes**: ~1,000-1,500 characters
+- **Free tier**: 10,000 characters/month = ~7-10 users
+- **Paid tier**: ~$0.30 per 1,000 characters = ~$0.30-0.45 per user
+
+### Total Cost Per User
+- **OpenAI**: ~$0.0015
+- **ElevenLabs**: ~$0.35 (paid tier)
+- **Total**: ~$0.35 per user onboarded
+
+*After onboarding, users play audio from cache with zero additional API costs.*
+
+*Prices as of November 2024. Check [OpenAI Pricing](https://openai.com/pricing) and [ElevenLabs Pricing](https://elevenlabs.io/pricing) for current rates.*
 
 ## Production Recommendations
 
@@ -269,4 +361,47 @@ For issues or questions:
 - For production, use Firebase Cloud Functions
 - Monitor OpenAI usage in your dashboard
 - Set up spending limits on OpenAI account
+
+## ElevenLabs Audio Tags Reference
+
+The system uses ElevenLabs v3 audio tags to create emotionally expressive text-to-speech. The tags are embedded in the generated quotes and interpreted by ElevenLabs during synthesis.
+
+### How It Works
+
+1. **OpenAI generates quotes** with embedded audio tags like `[CARING] [SOFT] Your quote text here`
+2. **Tags are stored in Firestore** as part of the quote text
+3. **ElevenLabs v3 reads the tags** when generating speech and applies the emotional tones
+4. **Result**: More human-like, emotionally resonant audio playback
+
+### Tag Categories Used
+
+**Emotional Tone:**
+- [CARING], [COMPASSIONATE], [GENTLE], [HOPEFUL], [CONFIDENT], [SERIOUS], [SINCERE], [WARM], [SUPPORTIVE], [MELANCHOLIC], [CONCERNED], [OPTIMISTIC], [PROUD], [TENDER], [THOUGHTFUL], [CALM], [ENCOURAGING]
+
+**Pace & Timing:**
+- [SLOW], [MEASURED], [PAUSED], [DRAMATIC PAUSE], [STEADY]
+
+**Volume & Energy:**
+- [SOFT], [WHISPERING], [NORMAL], [EMPHATIC]
+
+**Non-Verbal Reactions:**
+- [SIGH], [HEAVY SIGH], [HMM]
+
+### Best Practices
+
+- **Use 1-3 tags per quote** - Don't over-tag, it can sound unnatural
+- **Place tags before the phrase** they apply to
+- **Match tags to quote intent** - Use caring/gentle for accountability, hopeful/confident for motivation
+- **Combine complementary tags** - e.g., [CARING] [SOFT] work well together
+- **Test audio output** - Listen to generated speech to verify tags are effective
+
+### Documentation
+
+For the complete list of available ElevenLabs audio tags, see:
+- **Emotional Tone & Attitude Tags**: ~140 tags covering all emotional states
+- **Non-Verbal Reaction Tags**: ~60 tags for human sounds (sighs, laughs, etc.)
+- **Volume & Energy Tags**: ~50 tags for delivery intensity
+- **Pace, Rhythm & Timing Tags**: ~60 tags for speech timing
+
+Full reference: ElevenLabs v3 documentation at `https://elevenlabs.io/docs/models#eleven-v3-alpha`
 

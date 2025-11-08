@@ -152,5 +152,21 @@ class TimerManager: ObservableObject {
             return String(format: "%02d:%02d.%02d", minutes, seconds, centiseconds)
         }
     }
+    
+    // Check if timer has reached 24 hours or more
+    func isOverOneDayOld(timeInterval: TimeInterval) -> Bool {
+        return timeInterval >= 86400 // 24 hours in seconds
+    }
+    
+    // Get time components for display
+    func getTimeComponents(from timeInterval: TimeInterval) -> (days: Int, hours: Int, minutes: Int, seconds: Int) {
+        let totalSeconds = Int(timeInterval)
+        let days = totalSeconds / 86400
+        let hours = (totalSeconds % 86400) / 3600
+        let minutes = (totalSeconds % 3600) / 60
+        let seconds = totalSeconds % 60
+        
+        return (days, hours, minutes, seconds)
+    }
 }
 
