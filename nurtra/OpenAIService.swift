@@ -38,7 +38,7 @@ class OpenAIService {
             "messages": [
                 [
                     "role": "system",
-                    "content": "You are a compassionate therapist specializing in eating disorder recovery. Generate personalized, empowering motivational quotes."
+                    "content": "You are a compassionate therapist specializing in eating disorder recovery. Generate personalized, empowering motivational quotes that are unique, varied, and authentic."
                 ],
                 [
                     "role": "user",
@@ -46,7 +46,7 @@ class OpenAIService {
                 ]
             ],
             "temperature": 0.9,
-            "max_tokens": 1000
+            "max_tokens": 2000
         ]
         
         guard let url = URL(string: endpoint) else {
@@ -89,13 +89,13 @@ class OpenAIService {
         let recoveryValues = responses.recoveryValues.joined(separator: ", ")
         
         let nameContext = if let name = userName, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            "This person's name is \(name). Use their name naturally in the quotes to make them feel personally addressed."
+            "This person's name is \(name). Use their name naturally in some quotes (not all) to make them feel personally addressed."
         } else {
             "Address them directly using 'you' since their name is not available."
         }
         
         return """
-        Based on the following information about a person's binge eating recovery journey, generate exactly 10 personalized quotes that sound like they're coming from a close peer who's been there and understands. Make each quote unique, authentic, and deeply connected to their specific situation and values.
+        Based on the following information about a person's binge eating recovery journey, generate exactly 30 personalized quotes that sound like they're coming from a close peer who's been there and understands. Make each quote unique, authentic, varied, and deeply connected to their specific situation and values. The user will see these quotes randomized, so ensure high variety and minimal repetition.
         
         \(nameContext)
         
@@ -111,21 +111,29 @@ class OpenAIService {
         - Recovery values: \(recoveryValues)
         
         Requirements:
-        1. Generate exactly 10 quotes
-        2. Each quote should be exactly 1 sentence
+        1. Generate exactly 30 quotes - no more, no less
+        2. Each quote should be exactly 1-2 sentences (keep them punchy and powerful)
         3. Write like a close friend/peer speaking casually and directly
-        4. Structure the quotes as follows:
-           - Quotes 1-3: Guilt trip them for relapsing (but from a caring place)
-           - Quotes 4-6: Remind them of what they value and their "why"
-           - Quotes 7-8: Remind them of their specific coping activities they mentioned (like exercise, meditation, creative outlets, spending time with family/friends, going outdoors, journaling, etc.)
-           - Quotes 9-10: Motivate and encourage them forward
+        4. Vary the tone and approach across different quotes:
+           - Quotes 1-5: Guilt trip them for relapsing (but from a caring place) - "You know this isn't you..."
+           - Quotes 6-11: Remind them of what they value and their "why" - "Remember why this matters..."
+           - Quotes 12-17: Remind them of their specific coping activities (exercise, meditation, creative outlets, spending time with friends, going outdoors, journaling, etc.)
+           - Quotes 18-23: Motivate and encourage them forward - "You've got this..." "You're stronger than..."
+           - Quotes 24-30: Mix different approaches - some tough love, some gentle encouragement, some humor, some vulnerability
         5. Make them personal to their specific struggles, triggers, and values
-        6. Use casual, peer-to-peer language (like "you know this isn't you" or "remember when you told me...")
-        7. Reference their specific journey details naturally
-        8. When their name is provided, use it naturally in some quotes (not all) to create personal connection
-        9. Format as a numbered list (1. Quote 1\n2. Quote 2\n...)
+        6. Use varied casual, peer-to-peer language (avoid repeating the same phrases)
+        7. Reference their specific journey details naturally and vary which details you reference
+        8. Use their name naturally in 8-12 of the 30 quotes to create personal connection
+        9. Ensure MAXIMUM VARIETY - avoid similar phrasing or messaging across quotes
+        10. Include some quotes that reference:
+            - Their specific triggers (if applicable)
+            - Specific coping strategies they mentioned
+            - Their personal values
+            - Recovery timeline/journey
+            - Future vision of life without binge eating
+        11. Format as a numbered list (1. Quote 1\n2. Quote 2\n...30. Quote 30\n)
         
-        Generate the 10 quotes now:
+        Generate the 30 unique, varied, and interesting quotes now:
         """
     }
     
@@ -153,14 +161,14 @@ class OpenAIService {
                 return nil
             }
         
-        // Ensure we have exactly 10 quotes
-        guard quotes.count >= 10 else {
-            print("Warning: Only received \(quotes.count) quotes from OpenAI")
+        // Ensure we have at least 30 quotes
+        guard quotes.count >= 30 else {
+            print("Warning: Only received \(quotes.count) quotes from OpenAI, expected at least 30")
             throw OpenAIError.insufficientQuotes
         }
         
-        // Return first 10 quotes
-        return Array(quotes.prefix(10))
+        // Return first 30 quotes
+        return Array(quotes.prefix(30))
     }
 }
 

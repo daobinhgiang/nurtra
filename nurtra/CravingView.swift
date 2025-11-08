@@ -68,6 +68,25 @@ struct CravingView: View {
         }
     }
     
+    private func refreshQuotes() {
+        // Stop current playback
+        elevenLabsService.stopAudio()
+        currentQuoteIndex = 0
+        
+        // Fetch and shuffle quotes again for variety
+        Task {
+            do {
+                quotes = try await firestoreManager.fetchMotivationalQuotes()
+                print("🔄 Quotes refreshed with new randomization - \(quotes.count) quotes available")
+                if !quotes.isEmpty {
+                    playCurrentQuoteAndContinue()
+                }
+            } catch {
+                print("Error refreshing quotes: \(error)")
+            }
+        }
+    }
+    
     // MARK: - App Blocking Functions
     
     private func autoLockApps() {
@@ -360,12 +379,16 @@ struct CravingView: View {
                 
                 do {
                     quotes = try await firestoreManager.fetchMotivationalQuotes()
+                    print("📚 Loaded \(quotes.count) personalized quotes (randomized for variety)")
                     // Start playing quotes automatically
                     if !quotes.isEmpty {
+                        currentQuoteIndex = 0
                         playCurrentQuoteAndContinue()
+                    } else {
+                        print("⚠️ No quotes available - user may not have completed onboarding")
                     }
                 } catch {
-                    print("Error fetching quotes: \(error)")
+                    print("❌ Error fetching quotes: \(error)")
                 }
             }
             .onDisappear {

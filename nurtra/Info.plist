@@ -25,6 +25,8 @@
 	</array>
 	<key>CFBundleIconName</key>
 	<string>AppIcon</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 </dict>

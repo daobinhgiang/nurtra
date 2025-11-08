@@ -111,9 +111,9 @@ class FirestoreManager: ObservableObject {
             return []
         }
         
-        // Extract quotes in order (1, 2, 3, etc.)
+        // Extract quotes in order (1, 2, 3, etc.) - up to 30 quotes
         var quotes: [MotivationalQuote] = []
-        for i in 1...10 {
+        for i in 1...30 {
             if let text = quotesData["\(i)"] {
                 quotes.append(MotivationalQuote(
                     id: "\(i)",
@@ -124,7 +124,8 @@ class FirestoreManager: ObservableObject {
             }
         }
         
-        return quotes
+        // Return shuffled quotes for variety on each view entry
+        return quotes.shuffled()
     }
     
     // MARK: - Timer Methods
