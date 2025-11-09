@@ -398,7 +398,7 @@ struct SettingsView: View {
                         
                         // Change Plan - Shows paywall to view/change subscription plans
                         Button(action: {
-                            subscriptionManager.showPaywall(for: "settings_change_plan")
+                            subscriptionManager.showPaywall(for: "first_binge_survey")
                         }) {
                             HStack {
                                 Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
@@ -423,7 +423,7 @@ struct SettingsView: View {
                         }
                     } else {
                         Button(action: {
-                            subscriptionManager.showPaywall(for: "campaign_trigger")
+                            subscriptionManager.showPaywall(for: "first_binge_survey")
                         }) {
                             HStack {
                                 Image(systemName: "crown.fill")
