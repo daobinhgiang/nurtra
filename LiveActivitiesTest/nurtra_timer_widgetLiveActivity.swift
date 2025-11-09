@@ -1,6 +1,6 @@
 //
 //  nurtra_timer_widgetLiveActivity.swift
-//  nurtra_timer_widget
+//  LiveActivitiesTest
 //
 //  Created by Giang Michael Dao on 10/28/25.
 //
@@ -9,7 +9,7 @@ import ActivityKit
 import WidgetKit
 import SwiftUI
 
-// Note: nurtra_timer_widgetAttributes is defined in nurtra/nurtra_timer_widgetAttributes.swift
+// Note: nurtra_timer_widgetAttributes is defined in LiveActivitiesTest/nurtra_timer_widgetAttributes.swift
 // and must be included in both the main app and widget extension targets
 
 @available(iOS 16.1, *)
@@ -220,3 +220,4 @@ extension nurtra_timer_widgetAttributes.ContentState {
     nurtra_timer_widgetAttributes.ContentState.shortTimer
     nurtra_timer_widgetAttributes.ContentState.longTimer
 }
+

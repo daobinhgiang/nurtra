@@ -9,6 +9,7 @@ import Foundation
 import Combine
 import FirebaseFirestore
 import FirebaseAuth
+import ActivityKit
 
 class TimerManager: ObservableObject {
     @Published var isTimerRunning = false
@@ -17,10 +18,106 @@ class TimerManager: ObservableObject {
     
     private var timer: Timer?
     private var firestoreManager: FirestoreManager?
+    @available(iOS 16.1, *)
+    private var activity: Activity<nurtra_timer_widgetAttributes>?
+    private var lastActivityUpdate: Date?
     
     // Dependency injection for FirestoreManager
     func setFirestoreManager(_ manager: FirestoreManager) {
         self.firestoreManager = manager
+    }
+    
+    // MARK: - LiveActivity Methods
+    
+    @available(iOS 16.1, *)
+    private func startLiveActivity() {
+        // Check if LiveActivities are supported and enabled
+        guard ActivityAuthorizationInfo().areActivitiesEnabled else {
+            print("⚠️ LiveActivities are not enabled")
+            return
+        }
+        
+        guard let startTime = timerStartTime else {
+            print("⚠️ Cannot start LiveActivity without timer start time")
+            return
+        }
+        
+        // End any existing activity first
+        endLiveActivity()
+        
+        let attributes = nurtra_timer_widgetAttributes(timerName: "Binge-Free Timer")
+        let initialState = nurtra_timer_widgetAttributes.ContentState(
+            startTime: startTime,
+            elapsedSeconds: 0,
+            isRunning: true
+        )
+        
+        do {
+            activity = try Activity.request(
+                attributes: attributes,
+                content: .init(state: initialState, staleDate: nil),
+                pushType: nil
+            )
+            print("✅ LiveActivity started successfully")
+        } catch {
+            print("❌ Error starting LiveActivity: \(error.localizedDescription)")
+        }
+    }
+    
+    @available(iOS 16.1, *)
+    private func updateLiveActivity() {
+        guard let activity = activity else { return }
+        
+        // Throttle updates to once per second to avoid excessive battery usage
+        if let lastUpdate = lastActivityUpdate,
+           Date().timeIntervalSince(lastUpdate) < 1.0 {
+            return
+        }
+        
+        guard let startTime = timerStartTime else { return }
+        
+        let updatedState = nurtra_timer_widgetAttributes.ContentState(
+            startTime: startTime,
+            elapsedSeconds: elapsedTime,
+            isRunning: isTimerRunning
+        )
+        
+        Task {
+            await activity.update(
+                .init(
+                    state: updatedState,
+                    staleDate: nil
+                )
+            )
+        }
+        
+        lastActivityUpdate = Date()
+    }
+    
+    @available(iOS 16.1, *)
+    private func endLiveActivity() {
+        guard let activity = activity else { return }
+        
+        Task {
+            let finalState = nurtra_timer_widgetAttributes.ContentState(
+                startTime: timerStartTime ?? Date(),
+                elapsedSeconds: elapsedTime,
+                isRunning: false
+            )
+            
+            await activity.end(
+                .init(
+                    state: finalState,
+                    staleDate: nil
+                ),
+                dismissalPolicy: .immediate
+            )
+            
+            print("✅ LiveActivity ended")
+        }
+        
+        self.activity = nil
+        lastActivityUpdate = nil
     }
     
     func startTimer() async {
@@ -33,6 +130,11 @@ class TimerManager: ObservableObject {
             try await firestoreManager?.saveTimerStart(startTime: now)
         } catch {
             print("Error saving timer start to Firestore: \(error.localizedDescription)")
+        }
+        
+        // Start LiveActivity
+        if #available(iOS 16.1, *) {
+            startLiveActivity()
         }
         
         // Start local timer for display updates
@@ -54,6 +156,11 @@ class TimerManager: ObservableObject {
         // Stop local timer immediately
         stopLocalTimer()
         
+        // End LiveActivity
+        if #available(iOS 16.1, *) {
+            endLiveActivity()
+        }
+        
         // Save the timer stop state to Firestore with stop time
         do {
             try await firestoreManager?.stopTimer(stopTime: stopTime)
@@ -71,6 +178,11 @@ class TimerManager: ObservableObject {
         
         // Stop the local timer IMMEDIATELY (synchronous) FIRST to prevent it from continuing
         stopLocalTimer()
+        
+        // End LiveActivity
+        if #available(iOS 16.1, *) {
+            endLiveActivity()
+        }
         
         // Now calculate duration from timestamps (not from elapsedTime which might be stale)
         let endTime = Date()
@@ -102,6 +214,11 @@ class TimerManager: ObservableObject {
     private func updateElapsedTime() {
         guard let startTime = timerStartTime else { return }
         elapsedTime = Date().timeIntervalSince(startTime)
+        
+        // Update LiveActivity (throttled to 1 second internally)
+        if #available(iOS 16.1, *) {
+            updateLiveActivity()
+        }
     }
     
     // Fetch timer from Firestore and resume if it was running
@@ -118,6 +235,12 @@ class TimerManager: ObservableObject {
                     timer = nil
                     
                     updateElapsedTime()
+                    
+                    // Resume LiveActivity
+                    if #available(iOS 16.1, *) {
+                        startLiveActivity()
+                    }
+                    
                     timer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { [weak self] _ in
                         self?.updateElapsedTime()
                     }
@@ -125,6 +248,11 @@ class TimerManager: ObservableObject {
                     // Timer is stopped - ensure no timer is running
                     timer?.invalidate()
                     timer = nil
+                    
+                    // Ensure LiveActivity is ended
+                    if #available(iOS 16.1, *) {
+                        endLiveActivity()
+                    }
                     
                     if let stopTime = timerData.stopTime {
                         // Timer is stopped - use the stop time to calculate the frozen elapsed time

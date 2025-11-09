@@ -9,11 +9,15 @@ import WidgetKit
 import SwiftUI
 
 @main
-@available(iOS 18.0, *)
 struct LiveActivitiesTestBundle: WidgetBundle {
     var body: some Widget {
-        LiveActivitiesTest()
-        LiveActivitiesTestControl()
-        LiveActivitiesTestLiveActivity()
+        if #available(iOS 18.0, *) {
+            LiveActivitiesTest()
+            LiveActivitiesTestControl()
+            LiveActivitiesTestLiveActivity()
+        }
+        if #available(iOS 16.1, *) {
+            nurtra_timer_widgetLiveActivity()
+        }
     }
 }
