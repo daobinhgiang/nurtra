@@ -78,16 +78,6 @@
 			path = nurtra;
 			sourceTree = "<group>";
 		};
-		CA984C7E2EB1368700582400 /* nurtra_timer_widget */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = nurtra_timer_widget;
-			sourceTree = "<group>";
-		};
-		CA984C9B2EB136F300582400 /* nurtra_timer_widget */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = nurtra_timer_widget;
-			sourceTree = "<group>";
-		};
 		CAE1E8072EBF1A9B00C751E0 /* LiveActivitiesTest */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -131,8 +121,6 @@
 			isa = PBXGroup;
 			children = (
 				CA3395C02EAFFCE8003BBE6E /* nurtra */,
-				CA984C7E2EB1368700582400 /* nurtra_timer_widget */,
-				CA984C9B2EB136F300582400 /* nurtra_timer_widget */,
 				CAE1E8072EBF1A9B00C751E0 /* LiveActivitiesTest */,
 				CA984C082EB11CAC00582400 /* Frameworks */,
 				CA3395BF2EAFFCE8003BBE6E /* Products */,
