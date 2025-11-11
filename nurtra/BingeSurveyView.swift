@@ -120,8 +120,6 @@ struct BingeSurveyView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .navigationTitle("Binge Survey")
-        .contentShape(Rectangle())
-        .onTapGesture { dismissKeyboard() }
     }
 
     private func titleForStep(_ step: Int) -> String {
@@ -198,8 +196,6 @@ struct BingeSurveyView: View {
                 }
             }
             .padding()
-            .contentShape(Rectangle())
-            .onTapGesture { dismissKeyboard() }
         }
     }
 

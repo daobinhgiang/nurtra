@@ -259,8 +259,6 @@ struct OnboardingSurveyView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .navigationTitle("Welcome to Nurtra")
-        .contentShape(Rectangle())
-        .onTapGesture { dismissKeyboard() }
     }
     
     private func titleForStep(_ step: Int) -> String {
@@ -346,8 +344,6 @@ struct OnboardingSurveyView: View {
                 }
             }
             .padding()
-            .contentShape(Rectangle())
-            .onTapGesture { dismissKeyboard() }
         }
     }
     
