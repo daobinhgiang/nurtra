@@ -119,11 +119,27 @@ class SubscriptionManager: ObservableObject {
         Superwall.shared.register(placement: feature)
         print("✅ [SubscriptionManager] Placement registered. Superwall will present paywall if campaign is configured.")
         
-        // Refresh subscription status after a short delay to catch any purchase updates
+        // Set up periodic status checks to catch purchases immediately
         Task {
-            print("⏳ [SubscriptionManager] Will check subscription status in 1 second to catch purchase updates...")
-            try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+            // Check after 1 second
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
             await checkSubscriptionStatus()
+            
+            // Check again after 3 seconds
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            await checkSubscriptionStatus()
+            
+            // Check again after 6 seconds
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            await checkSubscriptionStatus()
+            
+            print("✅ [SubscriptionManager] Completed periodic status checks")
         }
+    }
+    
+    /// Force refresh subscription status immediately
+    func forceRefreshSubscriptionStatus() async {
+        print("🔄 [SubscriptionManager] Force refreshing subscription status...")
+        await checkSubscriptionStatus()
     }
 }

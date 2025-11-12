@@ -31,9 +31,6 @@ struct ContentView: View {
             } else if authManager.isAuthenticated {
                 if authManager.needsOnboarding {
                     OnboardingSurveyView()
-                } else if authManager.hasCompletedFirstBingeSurvey && !subscriptionManager.isSubscribed {
-                    // Show paywall blocker if user completed first binge survey but hasn't subscribed
-                    PaywallBlockerView()
                 } else {
                     MainAppView()
                 }
@@ -169,10 +166,17 @@ struct MainAppView: View {
                 // Refresh periods when view appears
                 Task {
                     await fetchRecentPeriods()
+                    // Refresh subscription status to catch any changes
+                    await subscriptionManager.checkSubscriptionStatus()
                 }
                 
                 // Check initial state for paywall blocker
                 showingPaywallBlocker = shouldBlockForPaywall
+                
+                print("👁️ [MainAppView] View appeared")
+                print("   shouldBlockForPaywall: \(shouldBlockForPaywall)")
+                print("   hasCompletedFirstBingeSurvey: \(authManager.hasCompletedFirstBingeSurvey)")
+                print("   isSubscribed: \(subscriptionManager.isSubscribed)")
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
@@ -185,9 +189,29 @@ struct MainAppView: View {
                 PaywallBlockerView()
                     .environmentObject(subscriptionManager)
                     .environmentObject(authManager)
+                    .interactiveDismissDisabled(shouldBlockForPaywall)
             }
             .onChange(of: shouldBlockForPaywall) { oldValue, newValue in
+                print("🔄 [MainAppView] shouldBlockForPaywall changed: \(oldValue) → \(newValue)")
+                print("   hasCompletedFirstBingeSurvey: \(authManager.hasCompletedFirstBingeSurvey)")
+                print("   isSubscribed: \(subscriptionManager.isSubscribed)")
                 showingPaywallBlocker = newValue
+            }
+            .onChange(of: subscriptionManager.isSubscribed) { oldValue, newValue in
+                print("🔄 [MainAppView] Subscription status changed: \(oldValue) → \(newValue)")
+                // Force dismiss paywall if user just subscribed
+                if newValue && showingPaywallBlocker {
+                    print("✅ [MainAppView] User subscribed! Dismissing paywall blocker")
+                    showingPaywallBlocker = false
+                }
+            }
+            .onChange(of: authManager.hasCompletedFirstBingeSurvey) { oldValue, newValue in
+                print("🔄 [MainAppView] First binge survey status changed: \(oldValue) → \(newValue)")
+                // Show paywall if user completed first survey and not subscribed
+                if newValue && !subscriptionManager.isSubscribed {
+                    print("⚠️ [MainAppView] First survey completed, user not subscribed - showing paywall")
+                    showingPaywallBlocker = true
+                }
             }
         }
     }
@@ -577,7 +601,7 @@ struct SettingsView: View {
                 showingBlockApps = true
             }) {
                 HStack {
-                    Image(systemName: "app.badge.shield.checkmark.fill")
+                    Image(systemName: "shield.fill")
                         .foregroundColor(.blue)
                     Text("Manage Blocked Apps")
                     Spacer()

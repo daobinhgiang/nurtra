@@ -12,6 +12,7 @@ struct PaywallBlockerView: View {
     @EnvironmentObject var subscriptionManager: SubscriptionManager
     @EnvironmentObject var authManager: AuthenticationManager
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.dismiss) private var dismiss
     @State private var hasShownPaywall = false
     
     var body: some View {
@@ -92,49 +93,49 @@ struct PaywallBlockerView: View {
                 }
             }
         }
-        .onChange(of: subscriptionManager.isSubscribed) { isSubscribed in
-            print("🔄 [PaywallBlockerView] Subscription status changed: isSubscribed = \(isSubscribed)")
-            // Refresh subscription status when it changes
-            // This ensures the blocker disappears immediately after purchase
-            if isSubscribed {
-                print("✅ [PaywallBlockerView] User subscribed! Resetting hasShownPaywall flag")
-                hasShownPaywall = false // Reset so it can show again if needed
-            } else {
-                print("❌ [PaywallBlockerView] User not subscribed")
+        .onChange(of: subscriptionManager.isSubscribed) { oldValue, newValue in
+            print("🔄 [PaywallBlockerView] Subscription status changed: \(oldValue) → \(newValue)")
+            // Dismiss immediately when user subscribes
+            if newValue && !oldValue {
+                print("✅ [PaywallBlockerView] User just subscribed! Auto-dismissing blocker...")
+                hasShownPaywall = false // Reset for future if needed
+                // The parent view (MainAppView) will handle the actual dismissal
             }
         }
-        .onChange(of: scenePhase) { newPhase in
-            print("📱 [PaywallBlockerView] Scene phase changed: \(newPhase)")
+        .onChange(of: scenePhase) { oldPhase, newPhase in
+            print("📱 [PaywallBlockerView] Scene phase changed: \(oldPhase) → \(newPhase)")
             
-            // Only re-show paywall if user dismissed it and app becomes active
-            // Don't be too aggressive - only if paywall was previously shown and dismissed
-            if newPhase == .active && 
-               !subscriptionManager.isSubscribed && 
-               hasShownPaywall && 
-               !Superwall.shared.isPaywallPresented {
-                print("🔄 [PaywallBlockerView] App became active, conditions met for re-showing paywall")
-                print("   isSubscribed: \(subscriptionManager.isSubscribed)")
-                print("   hasShownPaywall: \(hasShownPaywall)")
-                print("   paywallPresented: \(Superwall.shared.isPaywallPresented)")
-                
-                // Add a small delay to avoid immediate re-showing
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    if !subscriptionManager.isSubscribed && !Superwall.shared.isPaywallPresented {
-                        print("🚀 [PaywallBlockerView] Re-triggering paywall after app became active...")
-                        subscriptionManager.showPaywall(for: "first_binge_survey")
-                    } else {
-                        print("⚠️ [PaywallBlockerView] Conditions changed, not re-showing paywall")
+            // Refresh subscription status when app becomes active
+            if newPhase == .active {
+                print("🔄 [PaywallBlockerView] App became active - refreshing subscription status...")
+                Task {
+                    await subscriptionManager.checkSubscriptionStatus()
+                    
+                    // After checking, decide if we need to re-show paywall
+                    await MainActor.run {
+                        if !subscriptionManager.isSubscribed && 
+                           hasShownPaywall && 
+                           !Superwall.shared.isPaywallPresented {
+                            print("🔄 [PaywallBlockerView] User still not subscribed after status check")
+                            print("   Re-showing paywall after 1 second delay...")
+                            
+                            // Add a small delay to avoid immediate re-showing
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                                if !subscriptionManager.isSubscribed && !Superwall.shared.isPaywallPresented {
+                                    print("🚀 [PaywallBlockerView] Re-triggering paywall...")
+                                    subscriptionManager.showPaywall(for: "first_binge_survey")
+                                }
+                            }
+                        } else {
+                            if subscriptionManager.isSubscribed {
+                                print("✅ [PaywallBlockerView] User is now subscribed!")
+                            } else if !hasShownPaywall {
+                                print("ℹ️ [PaywallBlockerView] Paywall not shown yet, will show on appear")
+                            } else if Superwall.shared.isPaywallPresented {
+                                print("ℹ️ [PaywallBlockerView] Paywall already presented")
+                            }
+                        }
                     }
-                }
-            } else {
-                if newPhase != .active {
-                    print("ℹ️ [PaywallBlockerView] Scene phase is not .active, skipping paywall trigger")
-                } else if subscriptionManager.isSubscribed {
-                    print("ℹ️ [PaywallBlockerView] User is subscribed, skipping paywall trigger")
-                } else if !hasShownPaywall {
-                    print("ℹ️ [PaywallBlockerView] Paywall not shown yet in this session, skipping re-trigger")
-                } else if Superwall.shared.isPaywallPresented {
-                    print("ℹ️ [PaywallBlockerView] Paywall already presented, skipping re-trigger")
                 }
             }
         }
