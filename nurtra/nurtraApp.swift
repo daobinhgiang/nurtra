@@ -23,14 +23,20 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     FirebaseApp.configure()
     
     // Configure Superwall
+    print("🏗️ [AppDelegate] Configuring Superwall with API key...")
     Superwall.configure(apiKey: Secrets.superwallAPIKey)
+    print("✅ [AppDelegate] Superwall configured")
     
     // Set user attributes if user is authenticated
     if let userId = Auth.auth().currentUser?.uid {
+      print("👤 [AppDelegate] Setting initial Superwall user attributes for userId: \(userId)")
       Superwall.shared.setUserAttributes([
         "userId": userId,
         "email": Auth.auth().currentUser?.email ?? ""
       ])
+      print("✅ [AppDelegate] Initial Superwall user attributes set")
+    } else {
+      print("ℹ️ [AppDelegate] No authenticated user at app launch")
     }
     
     // Set up notification delegates

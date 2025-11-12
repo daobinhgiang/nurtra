@@ -221,19 +221,30 @@ struct BingeSurveyView: View {
         do {
             // Check if this is the first survey BEFORE saving
             let isFirstSurvey = !authManager.hasCompletedFirstBingeSurvey
+            print("📝 [BingeSurveyView] Submitting survey...")
+            print("   isFirstSurvey: \(isFirstSurvey)")
+            print("   hasCompletedFirstBingeSurvey (before): \(authManager.hasCompletedFirstBingeSurvey)")
+            print("   isSubscribed: \(subscriptionManager.isSubscribed)")
             
             // Save to Firestore
             try await firestoreManager.saveBingeSurvey(responses: responses)
+            print("✅ [BingeSurveyView] Survey saved to Firestore")
             
             // Update local auth manager state
             if isFirstSurvey {
+                print("🎯 [BingeSurveyView] First binge survey completed!")
                 authManager.markFirstBingeSurveyComplete()
+                print("✅ [BingeSurveyView] Marked first binge survey as complete")
+                print("   PaywallBlockerView will be shown by ContentView")
                 
-                // Trigger paywall for first binge survey
-                subscriptionManager.showPaywall(for: "first_binge_survey")
+                // Don't trigger paywall here - let PaywallBlockerView handle it
+                // This prevents double-triggering when ContentView shows PaywallBlockerView
+            } else {
+                print("ℹ️ [BingeSurveyView] Not the first survey, continuing normally")
             }
             
             // Dismiss this view
+            print("👋 [BingeSurveyView] Dismissing view...")
             dismiss()
             
             // Then trigger the parent to dismiss too
@@ -241,7 +252,7 @@ struct BingeSurveyView: View {
                 onComplete()
             }
         } catch {
-            print("❌ Error saving binge survey: \(error)")
+            print("❌ [BingeSurveyView] Error saving binge survey: \(error.localizedDescription)")
             isSubmitting = false
         }
     }

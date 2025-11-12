@@ -43,36 +43,34 @@ struct ContentView: View {
         }
         .task {
             // Wait for managers to complete their initialization checks
-            // SubscriptionManager already checks in init, AuthenticationManager checks in init
-            // Just wait a brief moment for async init tasks to complete
             await waitForInitialChecks()
         }
-        .onChange(of: authManager.isAuthenticated) { isAuthenticated in
+        .onChange(of: authManager.isAuthenticated) { oldValue, newValue in
             // Only re-check if user just logged in (not on logout)
-            if isAuthenticated {
+            if newValue {
                 Task {
                     // Only check binge survey status (subscription already checked by manager)
                     await authManager.checkFirstBingeSurveyStatus()
                 }
             } else {
-                // Reset initialization state on logout
-                isInitializing = true
+                // Immediately show login view on logout - no need to wait for checks
+                isInitializing = false
             }
         }
     }
     
     private func waitForInitialChecks() async {
         // Give managers a moment to complete their async initialization
-        // SubscriptionManager checks in init, AuthenticationManager checks in init
-        try? await Task.sleep(nanoseconds: 50_000_000) // 0.05 seconds (reduced from 0.1)
+        try? await Task.sleep(nanoseconds: 50_000_000) // 0.05 seconds
         
         // Only check binge survey status if authenticated and not already checked
-        // This prevents redundant Firestore reads if AuthenticationManager already checked
         if authManager.isAuthenticated {
             await authManager.checkFirstBingeSurveyStatus()
         }
         
-        isInitializing = false
+        await MainActor.run {
+            isInitializing = false
+        }
     }
 }
 
@@ -85,6 +83,7 @@ struct MainAppView: View {
     @State private var recentPeriods: [BingeFreePeriod] = []
     @State private var showingSettings = false
     @State private var showingContactUs = false
+    @State private var showingPaywallBlocker = false
     
     // Check if paywall should be blocking
     private var shouldBlockForPaywall: Bool {
@@ -107,7 +106,9 @@ struct MainAppView: View {
                             .foregroundColor(.blue)
                     }
                     .disabled(shouldBlockForPaywall)
+                    
                     Spacer()
+                    
                     Button(action: {
                         if !shouldBlockForPaywall {
                             showingSettings = true
@@ -136,154 +137,19 @@ struct MainAppView: View {
                 // Middle section - Timer Display (centered)
                 Spacer()
                 
-                if timerManager.isOverOneDayOld(timeInterval: timerManager.elapsedTime) {
-                    // Two-row format for times >= 24 hours
-                    let components = timerManager.getTimeComponents(from: timerManager.elapsedTime)
-                    VStack(spacing: 8) {
-                        // Row 1: Days and Hours
-                        HStack(spacing: 0) {
-                            Text("\(components.days)")
-                                .font(.system(size: 50, weight: .bold, design: .rounded))
-                                .foregroundColor(timerManager.isTimerRunning ? .green : .primary)
-                                .monospacedDigit()
-                            Text("days")
-                                .font(.system(size: 20, weight: .semibold, design: .rounded))
-                                .foregroundColor(.secondary)
-                                .padding(.leading, 4)
-                            
-                            Text(":")
-                                .font(.system(size: 50, weight: .bold, design: .rounded))
-                                .foregroundColor(timerManager.isTimerRunning ? .green : .primary)
-                                .padding(.horizontal, 8)
-                            
-                            Text("\(components.hours)")
-                                .font(.system(size: 50, weight: .bold, design: .rounded))
-                                .foregroundColor(timerManager.isTimerRunning ? .green : .primary)
-                                .monospacedDigit()
-                            Text("hrs")
-                                .font(.system(size: 20, weight: .semibold, design: .rounded))
-                                .foregroundColor(.secondary)
-                                .padding(.leading, 4)
-                        }
-                        
-                        // Row 2: Minutes and Seconds
-                        HStack(spacing: 0) {
-                            Text("\(components.minutes)")
-                                .font(.system(size: 50, weight: .bold, design: .rounded))
-                                .foregroundColor(timerManager.isTimerRunning ? .green : .primary)
-                                .monospacedDigit()
-                            Text("mins")
-                                .font(.system(size: 20, weight: .semibold, design: .rounded))
-                                .foregroundColor(.secondary)
-                                .padding(.leading, 4)
-                            
-                            Text(":")
-                                .font(.system(size: 50, weight: .bold, design: .rounded))
-                                .foregroundColor(timerManager.isTimerRunning ? .green : .primary)
-                                .padding(.horizontal, 8)
-                            
-                            Text("\(components.seconds)")
-                                .font(.system(size: 50, weight: .bold, design: .rounded))
-                                .foregroundColor(timerManager.isTimerRunning ? .green : .primary)
-                                .monospacedDigit()
-                            Text("secs")
-                                .font(.system(size: 20, weight: .semibold, design: .rounded))
-                                .foregroundColor(.secondary)
-                                .padding(.leading, 4)
-                        }
-                    }
-                    .minimumScaleFactor(0.5)
-                    .lineLimit(1)
-                    .padding(.horizontal, 20)
-                } else {
-                    // Original format for times < 24 hours
-                    VStack(spacing: 20) {
-                        Text(timerManager.timeString(from: timerManager.elapsedTime))
-                            .font(.system(size: 60, weight: .bold, design: .rounded))
-                            .foregroundColor(timerManager.isTimerRunning ? .green : .primary)
-                            .monospacedDigit()
-                    }
-                }
+                timerDisplayView
                 
                 Spacer()
                 
                 // Recent Binge-Free Periods Section
                 if !recentPeriods.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Recent Binge-Free Periods")
-                            .font(.headline)
-                            .foregroundColor(.secondary)
-                            .padding(.horizontal)
-                        
-                        ForEach(recentPeriods) { period in
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(timerManager.timeString(from: period.duration))
-                                        .font(.title3)
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(.primary)
-                                    
-                                    Text(formatDate(period.endTime))
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                Spacer()
-                                Image(systemName: "clock.fill")
-                                    .foregroundColor(.blue)
-                                    .font(.title3)
-                            }
-                            .padding()
-                            .background(Color(.systemGray6))
-                            .cornerRadius(10)
-                            .padding(.horizontal)
-                        }
-                    }
-                    .padding(.vertical)
+                    recentPeriodsView
                 }
                 
                 Spacer()
                 
                 // Bottom section - Buttons
-                VStack(spacing: 12) {
-                    // Combined timer/craving button
-                    if !timerManager.isTimerRunning {
-                        Button(action: {
-                            Task {
-                                await timerManager.startTimer()
-                            }
-                        }) {
-                            HStack {
-                                Image(systemName: "play.circle.fill")
-                                    .font(.title2)
-                                Text("Binge-free Timer")
-                                    .font(.title2)
-                                    .fontWeight(.semibold)
-                            }
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.green)
-                            .cornerRadius(10)
-                        }
-                        .padding(.horizontal)
-                    } else {
-                        NavigationLink(destination: CravingView()) {
-                            Text("I'm Craving, Help!😩")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.red)
-                                .cornerRadius(10)
-                                .shadow(color: .red.opacity(0.6), radius: 15, x: 0, y: 0)
-                                .shadow(color: .red.opacity(0.4), radius: 25, x: 0, y: 0)
-                        }
-                        .padding(.horizontal)
-                        .disabled(shouldBlockForPaywall)
-                    }
-                }
-                .padding(.bottom, 20)
+                bottomButtonsView
             }
             .padding()
             .refreshable {
@@ -300,17 +166,13 @@ struct MainAppView: View {
                 await fetchRecentPeriods()
             }
             .onAppear {
-                // Refresh periods when view appears (e.g., after coming back from survey)
+                // Refresh periods when view appears
                 Task {
                     await fetchRecentPeriods()
                 }
                 
-                // If paywall should be blocking, this shouldn't be accessible
-                // The ContentView should have already shown PaywallBlockerView
-                // But add this as a safeguard
-                if shouldBlockForPaywall {
-                    print("⚠️ MainAppView appeared but paywall should be blocking - check ContentView logic")
-                }
+                // Check initial state for paywall blocker
+                showingPaywallBlocker = shouldBlockForPaywall
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
@@ -319,13 +181,174 @@ struct MainAppView: View {
             .sheet(isPresented: $showingContactUs) {
                 ContactUsView()
             }
+            .fullScreenCover(isPresented: $showingPaywallBlocker) {
+                PaywallBlockerView()
+                    .environmentObject(subscriptionManager)
+                    .environmentObject(authManager)
+            }
+            .onChange(of: shouldBlockForPaywall) { oldValue, newValue in
+                showingPaywallBlocker = newValue
+            }
         }
     }
+    
+    // MARK: - Subviews
+    
+    @ViewBuilder
+    private var timerDisplayView: some View {
+        if timerManager.isOverOneDayOld(timeInterval: timerManager.elapsedTime) {
+            // Two-row format for times >= 24 hours
+            let components = timerManager.getTimeComponents(from: timerManager.elapsedTime)
+            VStack(spacing: 8) {
+                // Row 1: Days and Hours
+                HStack(spacing: 0) {
+                    Text("\(components.days)")
+                        .font(.system(size: 50, weight: .bold, design: .rounded))
+                        .foregroundColor(timerManager.isTimerRunning ? .green : .primary)
+                        .monospacedDigit()
+                    Text("days")
+                        .font(.system(size: 20, weight: .semibold, design: .rounded))
+                        .foregroundColor(.secondary)
+                        .padding(.leading, 4)
+                    
+                    Text(":")
+                        .font(.system(size: 50, weight: .bold, design: .rounded))
+                        .foregroundColor(timerManager.isTimerRunning ? .green : .primary)
+                        .padding(.horizontal, 8)
+                    
+                    Text("\(components.hours)")
+                        .font(.system(size: 50, weight: .bold, design: .rounded))
+                        .foregroundColor(timerManager.isTimerRunning ? .green : .primary)
+                        .monospacedDigit()
+                    Text("hrs")
+                        .font(.system(size: 20, weight: .semibold, design: .rounded))
+                        .foregroundColor(.secondary)
+                        .padding(.leading, 4)
+                }
+                
+                // Row 2: Minutes and Seconds
+                HStack(spacing: 0) {
+                    Text("\(components.minutes)")
+                        .font(.system(size: 50, weight: .bold, design: .rounded))
+                        .foregroundColor(timerManager.isTimerRunning ? .green : .primary)
+                        .monospacedDigit()
+                    Text("mins")
+                        .font(.system(size: 20, weight: .semibold, design: .rounded))
+                        .foregroundColor(.secondary)
+                        .padding(.leading, 4)
+                    
+                    Text(":")
+                        .font(.system(size: 50, weight: .bold, design: .rounded))
+                        .foregroundColor(timerManager.isTimerRunning ? .green : .primary)
+                        .padding(.horizontal, 8)
+                    
+                    Text("\(components.seconds)")
+                        .font(.system(size: 50, weight: .bold, design: .rounded))
+                        .foregroundColor(timerManager.isTimerRunning ? .green : .primary)
+                        .monospacedDigit()
+                    Text("secs")
+                        .font(.system(size: 20, weight: .semibold, design: .rounded))
+                        .foregroundColor(.secondary)
+                        .padding(.leading, 4)
+                }
+            }
+            .minimumScaleFactor(0.5)
+            .lineLimit(1)
+            .padding(.horizontal, 20)
+        } else {
+            // Original format for times < 24 hours
+            VStack(spacing: 20) {
+                Text(timerManager.timeString(from: timerManager.elapsedTime))
+                    .font(.system(size: 60, weight: .bold, design: .rounded))
+                    .foregroundColor(timerManager.isTimerRunning ? .green : .primary)
+                    .monospacedDigit()
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var recentPeriodsView: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Recent Binge-Free Periods")
+                .font(.headline)
+                .foregroundColor(.secondary)
+                .padding(.horizontal)
+            
+            ForEach(recentPeriods) { period in
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(timerManager.timeString(from: period.duration))
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
+                        
+                        Text(formatDate(period.endTime))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    Image(systemName: "clock.fill")
+                        .foregroundColor(.blue)
+                        .font(.title3)
+                }
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(10)
+                .padding(.horizontal)
+            }
+        }
+        .padding(.vertical)
+    }
+    
+    @ViewBuilder
+    private var bottomButtonsView: some View {
+        VStack(spacing: 12) {
+            // Combined timer/craving button
+            if !timerManager.isTimerRunning {
+                Button(action: {
+                    Task {
+                        await timerManager.startTimer()
+                    }
+                }) {
+                    HStack {
+                        Image(systemName: "play.circle.fill")
+                            .font(.title2)
+                        Text("Binge-free Timer")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.green)
+                    .cornerRadius(10)
+                }
+                .padding(.horizontal)
+            } else {
+                NavigationLink(destination: CravingView()) {
+                    Text("I'm Craving, Help!😩")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.red)
+                        .cornerRadius(10)
+                        .shadow(color: .red.opacity(0.6), radius: 15, x: 0, y: 0)
+                        .shadow(color: .red.opacity(0.4), radius: 25, x: 0, y: 0)
+                }
+                .padding(.horizontal)
+                .disabled(shouldBlockForPaywall)
+            }
+        }
+        .padding(.bottom, 20)
+    }
+    
+    // MARK: - Helper Methods
     
     private func fetchRecentPeriods() async {
         do {
             recentPeriods = try await firestoreManager.fetchRecentBingeFreePeriods(limit: 3)
-            
         } catch {
             print("Error fetching recent periods: \(error.localizedDescription)")
         }
@@ -337,7 +360,6 @@ struct MainAppView: View {
         formatter.timeStyle = .short
         return formatter.string(from: date)
     }
-    
 }
 
 struct SettingsView: View {
@@ -351,252 +373,13 @@ struct SettingsView: View {
     var body: some View {
         NavigationView {
             List {
-                Section {
-                    HStack {
-                        Image(systemName: "person.circle.fill")
-                            .foregroundColor(.blue)
-                            .font(.title2)
-                        VStack(alignment: .leading) {
-                            Text("Account")
-                                .font(.headline)
-                            Text(authManager.user?.email ?? "Unknown")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        Spacer()
-                    }
-                    .padding(.vertical, 8)
-                }
-                
-                Section {
-                    HStack {
-                        Image(systemName: "star.fill")
-                            .foregroundColor(.yellow)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Subscription Status")
-                                .font(.headline)
-                            Text(subscriptionManager.isSubscribed ? "Premium Active" : "Free Plan")
-                                .font(.caption)
-                                .foregroundColor(subscriptionManager.isSubscribed ? .green : .secondary)
-                        }
-                        Spacer()
-                    }
-                    
-                    if subscriptionManager.isSubscribed {
-                        // Manage Subscription - Opens App Store subscription management
-                        Button(action: {
-                            openAppStoreSubscriptionManagement()
-                        }) {
-                            HStack {
-                                Image(systemName: "gear.circle.fill")
-                                    .foregroundColor(.blue)
-                                Text("Manage Subscription")
-                                    .foregroundColor(.blue)
-                                Spacer()
-                            }
-                        }
-                        
-                        // Change Plan - Shows paywall to view/change subscription plans
-                        Button(action: {
-                            subscriptionManager.showPaywall(for: "first_binge_survey")
-                        }) {
-                            HStack {
-                                Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
-                                    .foregroundColor(.blue)
-                                Text("Change Plan")
-                                    .foregroundColor(.blue)
-                                Spacer()
-                            }
-                        }
-                        
-                        // Cancel Subscription - Opens App Store subscription management
-                        Button(action: {
-                            openAppStoreSubscriptionManagement()
-                        }) {
-                            HStack {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(.red)
-                                Text("Cancel Subscription")
-                                    .foregroundColor(.red)
-                                Spacer()
-                            }
-                        }
-                    } else {
-                        Button(action: {
-                            subscriptionManager.showPaywall(for: "first_binge_survey")
-                        }) {
-                            HStack {
-                                Image(systemName: "crown.fill")
-                                    .foregroundColor(.yellow)
-                                Text("Upgrade to Premium")
-                                    .foregroundColor(.blue)
-                                Spacer()
-                            }
-                        }
-                    }
-                } header: {
-                    Text("Subscription")
-                } footer: {
-                    if subscriptionManager.isSubscribed {
-                        Text("Manage your subscription, change plans, or cancel in the App Store.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                
-                // Subscription Plans Information (Required by Apple for Auto-Renewable Subscriptions)
-                if !subscriptionManager.availableProducts.isEmpty {
-                    Section {
-                        ForEach(subscriptionManager.availableProducts, id: \.id) { product in
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text(product.displayName)
-                                    .font(.headline)
-                                
-                                HStack {
-                                    Text("Duration:")
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                    Text(product.subscription?.subscriptionPeriod.localizedDescription ?? "N/A")
-                                        .font(.subheadline)
-                                        .fontWeight(.medium)
-                                }
-                                
-                                HStack {
-                                    Text("Price:")
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                    Text(product.displayPrice)
-                                        .font(.subheadline)
-                                        .fontWeight(.medium)
-                                }
-                                
-                                // Show price per month for yearly subscriptions
-                                if let period = product.subscription?.subscriptionPeriod,
-                                   period.unit == .year,
-                                   period.value == 1 {
-                                    HStack {
-                                        Text("Price per month:")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                        Text(formatPricePerMonth(product: product))
-                                            .font(.caption)
-                                            .fontWeight(.medium)
-                                            .foregroundColor(.green)
-                                    }
-                                }
-                            }
-                            .padding(.vertical, 4)
-                        }
-                    } header: {
-                        Text("Subscription Plans")
-                    } footer: {
-                        Text("Payment will be charged to your iTunes Account at confirmation of purchase. Subscriptions automatically renew unless auto-renew is turned off at least 24-hours before the end of the current period. Your account will be charged for renewal within 24-hours prior to the end of the current period. You can manage your subscription and turn off auto-renewal in your Account Settings after purchase.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                
-                Section {
-                    Button(action: {
-                        showingBlockApps = true
-                    }) {
-                        HStack {
-                            Image(systemName: "app.badge.shield.checkmark.fill")
-                                .foregroundColor(.blue)
-                            Text("Manage Blocked Apps")
-                            Spacer()
-                        }
-                    }
-                } header: {
-                    Text("App Blocking")
-                } footer: {
-                    Text("Select and manage which apps will be blocked when the feature is activated.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                
-                Section {
-                    Button(action: {
-                        do {
-                            try authManager.signOut()
-                        } catch {
-                            print("Sign out error: \(error)")
-                        }
-                    }) {
-                        HStack {
-                            Image(systemName: "arrow.right.square.fill")
-                                .foregroundColor(.red)
-                            Text("Sign Out")
-                                .foregroundColor(.red)
-                            Spacer()
-                        }
-                    }
-                } header: {
-                    Text("Account")
-                }
-                
-                Section {
-                    Button(action: {
-                        if let url = URL(string: "https://nurtra.app/privacy-policy") {
-                            UIApplication.shared.open(url)
-                        }
-                    }) {
-                        HStack {
-                            Image(systemName: "lock.shield.fill")
-                                .foregroundColor(.blue)
-                            Text("Privacy Policy")
-                            Spacer()
-                            Image(systemName: "arrow.up.right.square")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    
-                    Button(action: {
-                        if let url = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/") {
-                            UIApplication.shared.open(url)
-                        }
-                    }) {
-                        HStack {
-                            Image(systemName: "doc.text.fill")
-                                .foregroundColor(.blue)
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Terms of Use (EULA)")
-                                    .foregroundColor(.primary)
-                                Text("Apple Standard End User License Agreement")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            Spacer()
-                            Image(systemName: "arrow.up.right.square")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                } header: {
-                    Text("Legal")
-                }
-                
-                Section {
-                    Button(action: {
-                        showingDeleteConfirmation = true
-                    }) {
-                        HStack {
-                            Image(systemName: "trash.fill")
-                                .foregroundColor(.red)
-                            Text("Delete Account")
-                                .foregroundColor(.red)
-                            Spacer()
-                        }
-                    }
-                    .disabled(isDeleting)
-                } header: {
-                    Text("Danger Zone")
-                } footer: {
-                    Text("This action cannot be undone. All your data will be permanently deleted.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
+                accountSection
+                subscriptionSection
+                subscriptionPlansSection
+                appBlockingSection
+                accountActionsSection
+                legalSection
+                dangerZoneSection
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -632,6 +415,277 @@ struct SettingsView: View {
         }
     }
     
+    // MARK: - Sections
+    
+    @ViewBuilder
+    private var accountSection: some View {
+        Section {
+            HStack {
+                Image(systemName: "person.circle.fill")
+                    .foregroundColor(.blue)
+                    .font(.title2)
+                VStack(alignment: .leading) {
+                    Text("Account")
+                        .font(.headline)
+                    Text(authManager.user?.email ?? "Unknown")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+            }
+            .padding(.vertical, 8)
+        }
+    }
+    
+    @ViewBuilder
+    private var subscriptionSection: some View {
+        Section {
+            HStack {
+                Image(systemName: "star.fill")
+                    .foregroundColor(.yellow)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Subscription Status")
+                        .font(.headline)
+                    Text(subscriptionManager.isSubscribed ? "Premium Active" : "Free Plan")
+                        .font(.caption)
+                        .foregroundColor(subscriptionManager.isSubscribed ? .green : .secondary)
+                }
+                Spacer()
+            }
+            
+            if subscriptionManager.isSubscribed {
+                // Manage Subscription
+                Button(action: {
+                    openAppStoreSubscriptionManagement()
+                }) {
+                    HStack {
+                        Image(systemName: "gear.circle.fill")
+                            .foregroundColor(.blue)
+                        Text("Manage Subscription")
+                            .foregroundColor(.blue)
+                        Spacer()
+                    }
+                }
+                
+                // Change Plan
+                Button(action: {
+                    subscriptionManager.showPaywall(for: "first_binge_survey")
+                }) {
+                    HStack {
+                        Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
+                            .foregroundColor(.blue)
+                        Text("Change Plan")
+                            .foregroundColor(.blue)
+                        Spacer()
+                    }
+                }
+                
+                // Cancel Subscription
+                Button(action: {
+                    openAppStoreSubscriptionManagement()
+                }) {
+                    HStack {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.red)
+                        Text("Cancel Subscription")
+                            .foregroundColor(.red)
+                        Spacer()
+                    }
+                }
+            } else {
+                Button(action: {
+                    subscriptionManager.showPaywall(for: "first_binge_survey")
+                }) {
+                    HStack {
+                        Image(systemName: "crown.fill")
+                            .foregroundColor(.yellow)
+                        Text("Upgrade to Premium")
+                            .foregroundColor(.blue)
+                        Spacer()
+                    }
+                }
+            }
+        } header: {
+            Text("Subscription")
+        } footer: {
+            if subscriptionManager.isSubscribed {
+                Text("Manage your subscription, change plans, or cancel in the App Store.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var subscriptionPlansSection: some View {
+        if !subscriptionManager.availableProducts.isEmpty {
+            Section {
+                ForEach(subscriptionManager.availableProducts, id: \.id) { product in
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(product.displayName)
+                            .font(.headline)
+                        
+                        HStack {
+                            Text("Duration:")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            Text(product.subscription?.subscriptionPeriod.localizedDescription ?? "N/A")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                        }
+                        
+                        HStack {
+                            Text("Price:")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            Text(product.displayPrice)
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                        }
+                        
+                        // Show price per month for yearly subscriptions
+                        if let period = product.subscription?.subscriptionPeriod,
+                           period.unit == .year,
+                           period.value == 1 {
+                            HStack {
+                                Text("Price per month:")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text(formatPricePerMonth(product: product))
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.green)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+            } header: {
+                Text("Subscription Plans")
+            } footer: {
+                Text("Payment will be charged to your iTunes Account at confirmation of purchase. Subscriptions automatically renew unless auto-renew is turned off at least 24-hours before the end of the current period. Your account will be charged for renewal within 24-hours prior to the end of the current period. You can manage your subscription and turn off auto-renewal in your Account Settings after purchase.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var appBlockingSection: some View {
+        Section {
+            Button(action: {
+                showingBlockApps = true
+            }) {
+                HStack {
+                    Image(systemName: "app.badge.shield.checkmark.fill")
+                        .foregroundColor(.blue)
+                    Text("Manage Blocked Apps")
+                    Spacer()
+                }
+            }
+        } header: {
+            Text("App Blocking")
+        } footer: {
+            Text("Select and manage which apps will be blocked when the feature is activated.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+    
+    @ViewBuilder
+    private var accountActionsSection: some View {
+        Section {
+            Button(action: {
+                do {
+                    try authManager.signOut()
+                } catch {
+                    print("Sign out error: \(error)")
+                }
+            }) {
+                HStack {
+                    Image(systemName: "arrow.right.square.fill")
+                        .foregroundColor(.red)
+                    Text("Sign Out")
+                        .foregroundColor(.red)
+                    Spacer()
+                }
+            }
+        } header: {
+            Text("Account")
+        }
+    }
+    
+    @ViewBuilder
+    private var legalSection: some View {
+        Section {
+            Button(action: {
+                if let url = URL(string: "https://nurtra.app/privacy-policy") {
+                    UIApplication.shared.open(url)
+                }
+            }) {
+                HStack {
+                    Image(systemName: "lock.shield.fill")
+                        .foregroundColor(.blue)
+                    Text("Privacy Policy")
+                    Spacer()
+                    Image(systemName: "arrow.up.right.square")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            Button(action: {
+                if let url = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/") {
+                    UIApplication.shared.open(url)
+                }
+            }) {
+                HStack {
+                    Image(systemName: "doc.text.fill")
+                        .foregroundColor(.blue)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Terms of Use (EULA)")
+                            .foregroundColor(.primary)
+                        Text("Apple Standard End User License Agreement")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    Image(systemName: "arrow.up.right.square")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+        } header: {
+            Text("Legal")
+        }
+    }
+    
+    @ViewBuilder
+    private var dangerZoneSection: some View {
+        Section {
+            Button(action: {
+                showingDeleteConfirmation = true
+            }) {
+                HStack {
+                    Image(systemName: "trash.fill")
+                        .foregroundColor(.red)
+                    Text("Delete Account")
+                        .foregroundColor(.red)
+                    Spacer()
+                }
+            }
+            .disabled(isDeleting)
+        } header: {
+            Text("Danger Zone")
+        } footer: {
+            Text("This action cannot be undone. All your data will be permanently deleted.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+    
+    // MARK: - Helper Methods
+    
     private func deleteAccount() async {
         isDeleting = true
         do {
@@ -639,14 +693,11 @@ struct SettingsView: View {
             dismiss()
         } catch {
             print("Error deleting account: \(error)")
-            // You might want to show an error alert here
         }
         isDeleting = false
     }
     
     private func openAppStoreSubscriptionManagement() {
-        // Open App Store subscription management page
-        // This URL will open in the App Store app where users can manage, change, or cancel subscriptions
         if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
             UIApplication.shared.open(url)
         }
@@ -757,4 +808,5 @@ extension StoreKit.Product.SubscriptionPeriod {
     ContentView()
         .environmentObject(AuthenticationManager())
         .environmentObject(TimerManager())
+        .environmentObject(SubscriptionManager())
 }

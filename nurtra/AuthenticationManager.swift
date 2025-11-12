@@ -412,6 +412,7 @@ class AuthenticationManager: ObservableObject {
     
     private func updateSuperwallUserAttributes() {
         guard let user = Auth.auth().currentUser else {
+            print("🔄 [AuthenticationManager] No authenticated user, resetting Superwall")
             Superwall.shared.reset()
             return
         }
@@ -425,7 +426,16 @@ class AuthenticationManager: ObservableObject {
             "lastLogin": Timestamp(date: Date())
         ]
         
+        print("👤 [AuthenticationManager] Updating Superwall user attributes:")
+        print("   userId: \(user.uid)")
+        print("   email: \(user.email ?? "none")")
+        print("   isAuthenticated: \(isAuthenticated)")
+        print("   needsOnboarding: \(needsOnboarding)")
+        print("   overcomeCount: \(overcomeCount)")
+        print("   hasCompletedFirstBingeSurvey: \(hasCompletedFirstBingeSurvey)")
+        
         Superwall.shared.setUserAttributes(attributes)
+        print("✅ [AuthenticationManager] Superwall user attributes updated")
     }
 }
 

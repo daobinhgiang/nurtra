@@ -18,6 +18,7 @@ class SubscriptionManager: ObservableObject {
     ]
     
     init() {
+        print("🔵 [SubscriptionManager] Initializing...")
         // Check initial subscription status
         Task {
             await checkSubscriptionStatus()
@@ -28,20 +29,36 @@ class SubscriptionManager: ObservableObject {
         Superwall.shared.$subscriptionStatus
             .receive(on: DispatchQueue.main)
             .sink { [weak self] status in
-                self?.subscriptionStatus = status
+                guard let self = self else { return }
+                let previousStatus = self.subscriptionStatus
+                let previousSubscribed = self.isSubscribed
+                
+                self.subscriptionStatus = status
                 // Check if status is .active using pattern matching
                 if case .active = status {
-                    self?.isSubscribed = true
+                    self.isSubscribed = true
                 } else {
-                    self?.isSubscribed = false
+                    self.isSubscribed = false
+                }
+                
+                // Log status changes
+                if previousStatus != status {
+                    print("🔄 [SubscriptionManager] Subscription status changed: \(previousStatus) → \(status)")
+                }
+                if previousSubscribed != self.isSubscribed {
+                    print("\(self.isSubscribed ? "✅" : "❌") [SubscriptionManager] Subscription state changed: \(previousSubscribed) → \(self.isSubscribed)")
                 }
             }
             .store(in: &cancellables)
     }
     
     func checkSubscriptionStatus() async {
+        print("🔍 [SubscriptionManager] Checking subscription status...")
         let status = await Superwall.shared.subscriptionStatus
         await MainActor.run {
+            let previousStatus = self.subscriptionStatus
+            let previousSubscribed = self.isSubscribed
+            
             self.subscriptionStatus = status
             // Check if status is .active using pattern matching
             if case .active = status {
@@ -49,11 +66,17 @@ class SubscriptionManager: ObservableObject {
             } else {
                 self.isSubscribed = false
             }
+            
+            print("📊 [SubscriptionManager] Current status: \(status), isSubscribed: \(self.isSubscribed)")
+            if previousStatus != status {
+                print("🔄 [SubscriptionManager] Status updated: \(previousStatus) → \(status)")
+            }
         }
     }
     
     /// Load subscription products from App Store
     func loadProducts() async {
+        print("🛒 [SubscriptionManager] Loading products: \(productIDs)")
         do {
             let products = try await StoreKit.Product.products(for: productIDs)
             await MainActor.run {
@@ -61,9 +84,13 @@ class SubscriptionManager: ObservableObject {
                     // Sort by price, monthly first
                     product1.price < product2.price
                 }
+                print("✅ [SubscriptionManager] Loaded \(products.count) products:")
+                for product in self.availableProducts {
+                    print("   - \(product.displayName): \(product.displayPrice)")
+                }
             }
         } catch {
-            print("Failed to load products: \(error)")
+            print("❌ [SubscriptionManager] Failed to load products: \(error.localizedDescription)")
         }
     }
     
@@ -77,11 +104,26 @@ class SubscriptionManager: ObservableObject {
     
     /// Trigger a paywall for a specific feature
     func showPaywall(for feature: String) {
+        print("🎯 [SubscriptionManager] showPaywall called for feature: '\(feature)'")
+        print("   Current subscription status: \(subscriptionStatus), isSubscribed: \(isSubscribed)")
+        print("   Paywall already presented: \(Superwall.shared.isPaywallPresented)")
+        
         // Check if paywall is already being presented
         guard !Superwall.shared.isPaywallPresented else {
-            print("⚠️ Paywall already presented, skipping duplicate presentation")
+            print("⚠️ [SubscriptionManager] Paywall already presented, skipping duplicate presentation")
             return
         }
+        
+        // Register the placement - Superwall will present paywall if campaign is configured
+        print("📢 [SubscriptionManager] Registering placement '\(feature)' with Superwall...")
         Superwall.shared.register(placement: feature)
+        print("✅ [SubscriptionManager] Placement registered. Superwall will present paywall if campaign is configured.")
+        
+        // Refresh subscription status after a short delay to catch any purchase updates
+        Task {
+            print("⏳ [SubscriptionManager] Will check subscription status in 1 second to catch purchase updates...")
+            try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+            await checkSubscriptionStatus()
+        }
     }
 }
