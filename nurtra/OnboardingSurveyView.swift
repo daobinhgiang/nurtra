@@ -17,6 +17,7 @@ struct OnboardingSurveyView: View {
     @State private var personalizationProgress: Double = 0.0
     @State private var personalizationCompleted: Int = 0
     @State private var personalizationTotal: Int = 10
+    @State private var showSignOutConfirmation = false
     
     // Focus for text fields
     private enum FocusedField: Hashable {
@@ -81,11 +82,27 @@ struct OnboardingSurveyView: View {
         ZStack {
             VStack(spacing: 0) {
                 // Header
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(titleForStep(step))
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                    ProgressView(value: Double(step + 1), total: 11)
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(titleForStep(step))
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                        ProgressView(value: Double(step + 1), total: 11)
+                    }
+                    
+                    Spacer()
+                    
+                    Menu {
+                        Button(role: .destructive, action: {
+                            showSignOutConfirmation = true
+                        }) {
+                            Label("Sign Out", systemImage: "arrow.right.square")
+                        }
+                    } label: {
+                        Image(systemName: "gearshape.fill")
+                            .font(.title3)
+                            .foregroundColor(.blue)
+                    }
                 }
                 .padding()
                 .contentShape(Rectangle())
@@ -259,6 +276,18 @@ struct OnboardingSurveyView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .navigationTitle("Welcome to Nurtra")
+        .alert("Sign Out", isPresented: $showSignOutConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Sign Out", role: .destructive) {
+                do {
+                    try authManager.signOut()
+                } catch {
+                    print("Sign out error: \(error)")
+                }
+            }
+        } message: {
+            Text("Are you sure you want to sign out? You can sign in again later to continue the survey.")
+        }
     }
     
     private func titleForStep(_ step: Int) -> String {
